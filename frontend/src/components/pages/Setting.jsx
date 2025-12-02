@@ -33,7 +33,7 @@ const Settings = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const res = await axios.get(`${API_URL}/settings/me`, headers);
+      const res = await axios.get(`${API_BASE}/settings/me`, headers);
       const { user, company } = res.data;
 
       if (company) {

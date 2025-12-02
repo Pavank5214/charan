@@ -616,19 +616,44 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
                   </div>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <input 
-                      placeholder="Email" 
-                      value={client.email} 
-                      onChange={e => setClient({ ...client, email: e.target.value })} 
+                    <input
+                      placeholder="Email"
+                      value={client.email}
+                      onChange={e => setClient({ ...client, email: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <select
+                      value={client.state}
+                      onChange={e => setClient({ ...client, state: e.target.value })}
+                      className="w-full pl-9 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm bg-white appearance-none"
+                    >
+                      <option>KARNATAKA</option>
+                      <option>TAMIL NADU</option>
+                      <option>MAHARASHTRA</option>
+                      <option>ANDHRA PRADESH</option>
+                      <option>TELANGANA</option>
+                      <option>KERALA</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <input
+                      placeholder="Pincode"
+                      value={client.pincode}
+                      onChange={e => setClient({ ...client, pincode: e.target.value })}
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
                   </div>
                   <div className="md:col-span-2 relative">
                     <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <input 
-                      placeholder="Address, State, Pincode" 
-                      value={client.address} 
-                      onChange={e => setClient({ ...client, address: e.target.value })} 
+                    <input
+                      placeholder="Address"
+                      value={client.address}
+                      onChange={e => setClient({ ...client, address: e.target.value })}
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
                   </div>
