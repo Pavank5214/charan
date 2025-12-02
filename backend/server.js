@@ -18,8 +18,30 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// CORS Configuration — PATCH is now included!
-app.use(cors({origin: 'https://charan-6p3w-1q69nmwyv-pavank5214s-projects.vercel.app/'}));
+// ✅ Allowed Origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://charan-6p3w.vercel.app", // frontend
+];
+
+// ✅ Updated CORS setup
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// ✅ Express v5 fix: handle preflight properly
+app.options(/.*/, cors());
 
 // Body parser (only once!)
 app.use(express.json());
