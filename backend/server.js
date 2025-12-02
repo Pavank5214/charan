@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 8080;
 const allowedOrigins = [
   "http://localhost:5173",                    // Vite dev
   "https://paripoorna-s299.vercel.app",       // Your production frontend
+  "https://charan-6p3w.vercel.app",           // New frontend origin
 ];
 
 // CORS Configuration — PATCH is now included!
