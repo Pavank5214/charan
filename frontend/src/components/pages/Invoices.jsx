@@ -35,7 +35,7 @@ const Invoices = () => {
       setInvoices(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      // alert('Failed to load invoices');
+      toast.error('Failed to load invoices');
     } finally {
       setLoading(false);
     }
@@ -47,35 +47,78 @@ const Invoices = () => {
 
   const handleInvoiceSaved = (updatedInvoice) => {
     if (updatedInvoice) {
-      // Update the invoice in the list
       setInvoices(prev => {
         const existingIndex = prev.findIndex(inv => inv._id === updatedInvoice._id);
         if (existingIndex >= 0) {
-          // Update existing invoice
           const updated = [...prev];
           updated[existingIndex] = updatedInvoice;
           return updated;
         } else {
-          // Add new invoice
           return [updatedInvoice, ...prev];
         }
       });
     } else {
-      // Fallback: refetch if no data provided
       fetchInvoices();
     }
     setIsModalOpen(false);
     setEditingInvoice(null);
   };
 
-  // --- NEW: Handle Status Change ---
-  const handleStatusChange = async (id, newStatus) => {
+  // --- STATUS CHANGE LOGIC (Step 1: Confirmation) ---
+  const handleStatusChange = (id, newStatus, currentStatus) => {
+    // Prevent toast if status hasn't actually changed
+    if (newStatus === currentStatus) return;
+
+    toast((t) => (
+      <div className="flex flex-col gap-3 min-w-[240px]">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-50 rounded-full shrink-0">
+            <AlertCircle className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 text-sm">Update Status?</h3>
+            <p className="text-gray-500 text-xs mt-1">
+              Change invoice status to <span className="font-bold text-gray-800 capitalize">{newStatus}</span>?
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2 justify-end mt-1">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => executeStatusChange(id, newStatus, t.id)}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: '#fff',
+        padding: '12px',
+        borderRadius: '16px',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #f3f4f6'
+      },
+    });
+  };
+
+  // --- STATUS CHANGE LOGIC (Step 2: Execution) ---
+  const executeStatusChange = async (id, newStatus, toastId) => {
+    toast.dismiss(toastId); // Close confirmation
+    const loadingToast = toast.loading('Updating status...');
+
     try {
-      // Optimistic update
-      setInvoices(prev => prev.map(inv => inv._id === id ? { ...inv, status: newStatus } : inv));
-      
       const token = localStorage.getItem('token');
-      await fetch(`${API_BASE}/${id}/status`, {
+      const res = await fetch(`${API_BASE}/${id}/status`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -83,9 +126,16 @@ const Invoices = () => {
         },
         body: JSON.stringify({ status: newStatus })
       });
+
+      if (!res.ok) throw new Error("Failed to update");
+
+      // Update State locally
+      setInvoices(prev => prev.map(inv => inv._id === id ? { ...inv, status: newStatus } : inv));
+      
+      toast.success(`Status updated to ${newStatus}`, { id: loadingToast });
     } catch (err) {
       console.error("Status update failed", err);
-      toast.error("Failed to update status");
+      toast.error("Failed to update status", { id: loadingToast });
     }
   };
 
@@ -99,8 +149,8 @@ const Invoices = () => {
     setIsModalOpen(true);
   };
 
+  // --- DELETE LOGIC ---
   const handleDelete = (id) => {
-    // Custom Toast UI for confirmation
     toast((t) => (
       <div className="flex flex-col gap-3 min-w-[240px]">
         <div className="flex items-start gap-3">
@@ -141,9 +191,8 @@ const Invoices = () => {
     });
   };
 
-  // Separate function to handle the actual API call
   const executeDelete = async (id, toastId) => {
-    toast.dismiss(toastId); // Close the confirmation toast
+    toast.dismiss(toastId);
     const loadingToast = toast.loading('Deleting invoice...');
 
     try {
@@ -155,10 +204,7 @@ const Invoices = () => {
 
       if (!res.ok) throw new Error('Failed to delete');
 
-      // Update State
       setInvoices(prev => prev.filter(i => i._id !== id));
-      
-      // Show Success
       toast.success('Invoice deleted successfully', { id: loadingToast });
     } catch (err) {
       console.error(err);
@@ -166,7 +212,7 @@ const Invoices = () => {
     }
   };
 
-  // FIXED: Use real backend data + company settings
+  // --- PDF GENERATION ---
   const generatePDFBlob = async (invoiceFromList) => {
     setPdfLoading(true);
     try {
@@ -179,7 +225,7 @@ const Invoices = () => {
       const settingsData = await settingsRes.json();
       const company = settingsData.company || {};
 
-      // Build correct PDF data using REAL saved values
+      // Build correct PDF data
       const pdfData = {
         company: {
           name: company.name || 'Your Business Name',
@@ -274,7 +320,6 @@ const Invoices = () => {
     );
   });
 
-  // Number to words (same as before)
   const numberToWords = (num) => {
     if (!num) return 'Zero Rupees Only';
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
@@ -296,7 +341,6 @@ const Invoices = () => {
     return convert(Math.round(num)) + ' Rupees Only';
   };
 
-  // Helper for status badges
   const getStatusStyle = (status) => {
     switch (status) {
       case 'paid': return 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100';
@@ -321,10 +365,6 @@ const Invoices = () => {
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 md:mb-8 gap-4">
-          {/* <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Invoices</h1>
-            <p className="text-gray-500 mt-1 text-sm">Manage your GST invoices</p>
-          </div> */}
           <div className="flex shrink-0">
             <button
               onClick={() => { setEditingInvoice(null); setIsModalOpen(true); }}
@@ -440,7 +480,7 @@ const Invoices = () => {
                           <div className="relative inline-block text-left">
                             <select
                               value={inv.status || 'draft'}
-                              onChange={(e) => handleStatusChange(inv._id, e.target.value)}
+                              onChange={(e) => handleStatusChange(inv._id, e.target.value, inv.status)}
                               className={`appearance-none pl-8 pr-8 py-1.5 rounded-full text-xs font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all ${getStatusStyle(inv.status)}`}
                             >
                               <option value="draft">Draft</option>
@@ -498,7 +538,7 @@ const Invoices = () => {
                       <div className="relative">
                         <select
                           value={inv.status || 'draft'}
-                          onChange={(e) => handleStatusChange(inv._id, e.target.value)}
+                          onChange={(e) => handleStatusChange(inv._id, e.target.value, inv.status)}
                           className={`appearance-none pl-7 pr-6 py-1 rounded-full text-[10px] font-medium border cursor-pointer focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all ${getStatusStyle(inv.status)}`}
                         >
                           <option value="draft">Draft</option>
@@ -559,78 +599,79 @@ const Invoices = () => {
         invoiceToEdit={editingInvoice}
       />
 
-{previewInvoice && (
-  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col">
-      <div className="flex justify-between items-center p-6 border-b">
-        <h2 className="text-2xl font-bold truncate pr-4">
-          Preview - {previewInvoice.invoiceNumber}
-        </h2>
-        <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-full">
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+      {/* Preview Modal - Responsive (Iframe for Desktop, Link for Mobile) */}
+      {previewInvoice && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-2xl font-bold truncate pr-4">
+                Preview - {previewInvoice.invoiceNumber}
+              </h2>
+              <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-      <div className="flex-1 overflow-hidden relative bg-gray-50">
-        {pdfLoading ? (
-          <div className="flex items-center justify-center h-full text-gray-600">
-            <div className="flex flex-col items-center gap-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span>Generating PDF...</span>
+            <div className="flex-1 overflow-hidden relative bg-gray-50">
+              {pdfLoading ? (
+                <div className="flex items-center justify-center h-full text-gray-600">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span>Generating PDF...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* DESKTOP VIEW: Show Iframe */}
+                  <iframe 
+                    src={pdfBlobUrl} 
+                    className="hidden md:block w-full h-full border-0" 
+                    title="PDF Preview" 
+                  />
+
+                  {/* MOBILE VIEW: Show Open Button (Iframe doesn't work on mobile) */}
+                  <div className="md:hidden flex flex-col items-center justify-center h-full p-8 text-center">
+                    <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                      <FileText className="w-12 h-12 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      PDF Ready
+                    </h3>
+                    <p className="text-gray-500 mb-6 text-sm">
+                      Mobile browsers cannot preview PDFs inside the app. 
+                      Click below to view it.
+                    </p>
+                    <a 
+                      href={pdfBlobUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl shadow hover:bg-blue-700 transition-colors"
+                    >
+                      Open PDF File
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-6 border-t flex justify-end gap-4 bg-white rounded-b-2xl">
+              <button
+                onClick={() => handleDownload(previewInvoice)}
+                className="flex-1 md:flex-none px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <Download className="w-5 h-5" /> 
+                <span>Download</span>
+              </button>
+              <button 
+                onClick={closePreview} 
+                className="flex-1 md:flex-none px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
-        ) : (
-          <>
-            {/* DESKTOP VIEW: Show Iframe */}
-            <iframe 
-              src={pdfBlobUrl} 
-              className="hidden md:block w-full h-full border-0" 
-              title="PDF Preview" 
-            />
-
-            {/* MOBILE VIEW: Show Open Button (Iframe doesn't work on mobile) */}
-            <div className="md:hidden flex flex-col items-center justify-center h-full p-8 text-center">
-              <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-                <FileText className="w-12 h-12 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                PDF Ready
-              </h3>
-              <p className="text-gray-500 mb-6 text-sm">
-                Mobile browsers cannot preview PDFs inside the app. 
-                Click below to view it.
-              </p>
-              <a 
-                href={pdfBlobUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl shadow hover:bg-blue-700 transition-colors"
-              >
-                Open PDF File
-              </a>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="p-6 border-t flex justify-end gap-4 bg-white rounded-b-2xl">
-        <button
-          onClick={() => handleDownload(previewInvoice)}
-          className="flex-1 md:flex-none px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
-        >
-          <Download className="w-5 h-5" /> 
-          <span>Download</span>
-        </button>
-        <button 
-          onClick={closePreview} 
-          className="flex-1 md:flex-none px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
     </div>
   );
 };
