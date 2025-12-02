@@ -34,6 +34,10 @@ const clientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  accountNumber: {
+    type: String,
+    trim: true
+  },
   remarks: {
     type: String,
     trim: true

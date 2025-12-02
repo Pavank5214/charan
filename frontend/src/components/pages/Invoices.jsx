@@ -559,36 +559,78 @@ const Invoices = () => {
         invoiceToEdit={editingInvoice}
       />
 
-      {previewInvoice && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-2xl font-bold">Preview - {previewInvoice.invoiceNumber}</h2>
-              <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-full">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {pdfLoading ? (
-                <div className="flex items-center justify-center h-full text-gray-600">Generating PDF...</div>
-              ) : (
-                <iframe src={pdfBlobUrl} className="w-full h-full border-0" title="PDF" />
-              )}
-            </div>
-            <div className="p-6 border-t flex justify-end gap-4">
-              <button
-                onClick={() => handleDownload(previewInvoice)}
-                className="px-6 py-3 bg-green-600 text-white rounded-xl flex items-center gap-2"
-              >
-                <Download className="w-5 h-5" /> Download
-              </button>
-              <button onClick={closePreview} className="px-6 py-3 border rounded-xl">
-                Close
-              </button>
+{previewInvoice && (
+  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+      <div className="flex justify-between items-center p-6 border-b">
+        <h2 className="text-2xl font-bold truncate pr-4">
+          Preview - {previewInvoice.invoiceNumber}
+        </h2>
+        <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-full">
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-hidden relative bg-gray-50">
+        {pdfLoading ? (
+          <div className="flex items-center justify-center h-full text-gray-600">
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span>Generating PDF...</span>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <>
+            {/* DESKTOP VIEW: Show Iframe */}
+            <iframe 
+              src={pdfBlobUrl} 
+              className="hidden md:block w-full h-full border-0" 
+              title="PDF Preview" 
+            />
+
+            {/* MOBILE VIEW: Show Open Button (Iframe doesn't work on mobile) */}
+            <div className="md:hidden flex flex-col items-center justify-center h-full p-8 text-center">
+              <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                <FileText className="w-12 h-12 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                PDF Ready
+              </h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                Mobile browsers cannot preview PDFs inside the app. 
+                Click below to view it.
+              </p>
+              <a 
+                href={pdfBlobUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl shadow hover:bg-blue-700 transition-colors"
+              >
+                Open PDF File
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="p-6 border-t flex justify-end gap-4 bg-white rounded-b-2xl">
+        <button
+          onClick={() => handleDownload(previewInvoice)}
+          className="flex-1 md:flex-none px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors"
+        >
+          <Download className="w-5 h-5" /> 
+          <span>Download</span>
+        </button>
+        <button 
+          onClick={closePreview} 
+          className="flex-1 md:flex-none px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

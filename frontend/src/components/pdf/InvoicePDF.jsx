@@ -1,9 +1,16 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
+import { Font } from '@react-pdf/renderer';
+
+Font.register({
+  family: "Roboto",
+  src: "/fonts/Roboto-Regular.ttf",
+});
+
 
 // --- Styles ---
 const s = StyleSheet.create({
-  page: { padding: 15, fontSize: 8.5, fontFamily: 'Helvetica' },
+  page: { padding: 15, fontSize: 8.5, fontFamily: 'Roboto' },
   row: { flexDirection: 'row', alignItems: 'stretch' },
   border: { borderWidth: 1, borderColor: '#000' },
   borderTop: { borderTopWidth: 1, borderColor: '#000' },
@@ -99,7 +106,7 @@ const InvoicePDF = ({ invoice }) => {
               <View style={[s.borderRight, s.borderTop, s.p, s.textCenter, { flex: colFlex[3] }]}><Text>{it.qty}</Text></View>
               <View style={[s.borderRight, s.borderTop, s.p, s.textCenter, { flex: colFlex[4] }]}><Text>{it.unit}</Text></View>
               <View style={[s.borderRight, s.borderTop, s.p, s.textRight, { flex: colFlex[5] }]}><Text>{it.rate}</Text></View>
-              <View style={[s.borderTop, s.p, s.textRight, { flex: colFlex[6] }]}><Text>{parseFloat(it.amount).toLocaleString('en-IN')}</Text></View>
+              <View style={[s.borderTop, s.p, s.textRight, { flex: colFlex[6] }]}><Text>{(it.amount).toLocaleString('en-IN')}</Text></View>
             </View>
           ))}
         </View>
@@ -113,27 +120,45 @@ const InvoicePDF = ({ invoice }) => {
         </View>
 
         {/* GST Summary */}
-        <View style={[s.border, s.p, s.mb]}>
-          <Text style={s.textBold}>GST Summary</Text>
-          <View style={[s.row, s.mt]}>
-            {['HSN/SAC', 'Tax Rate', 'Taxable Amt.', 'GST Amt.', 'Total Tax'].map((h, i) => (
-              <Text key={i} style={[s.textCenter, { flex: [1.2, 0.8, 1.2, 1, 1][i] }]}>{h}</Text>
-            ))}
-          </View>
-          <View style={[s.row, s.borderTop, s.pt]}>
-            <Text style={{ flex: 1.2 }}>8536</Text>
-            <Text style={{ flex: 0.8 }}>{gstRate}%</Text>
-            <Text style={{ flex: 1.2 }}>{totals.subtotal.toLocaleString('en-IN')}</Text>
-            <Text style={{ flex: 1 }}>{totals.gst.toLocaleString('en-IN')}</Text>
-            <Text style={{ flex: 1 }}>{totals.gst.toLocaleString('en-IN')}</Text>
-          </View>
-        </View>
+       {/* GST Summary */}
+<View style={[s.border, s.p, s.mb]}>
+  <Text style={s.textBold}>GST Summary</Text>
+
+  {/* Header */}
+  <View style={[s.row, s.mt]}>
+    {['HSN/SAC', 'Tax Rate', 'Taxable Amt.', 'GST Amt.', 'Total Tax'].map((h, i) => (
+      <View key={i} style={[s.textCenter, { flex: [1.2, 0.8, 1.2, 1, 1][i] }]}>
+        <Text>{h}</Text>
+      </View>
+    ))}
+  </View>
+
+  {/* Row */}
+  <View style={[s.row, s.borderTop, s.pt]}>
+    <View style={{ flex: 1.2 , marginLeft : 50}}>
+      <Text>8536</Text>
+    </View>
+    <View style={{ flex: 0.8 }}>
+      <Text>{gstRate}%</Text>
+    </View>
+    <View style={{ flex: 1.2 }}>
+      <Text>{totals.subtotal.toLocaleString('en-IN')}</Text>
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text>{totals.gst.toLocaleString('en-IN')}</Text>
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text>{totals.gst.toLocaleString('en-IN')}</Text>
+    </View>
+  </View>
+</View>
+
 
         <Text style={[s.textBold, s.mb]}>{totals.inWords}.</Text>
 
         <View style={[s.border, s.p, s.mb]}>
           <Text style={s.textBold}>Bank Details</Text>
-          <Text>{bank.name} | A/C: {bank.account} | IFSC: {bank.ifsc}</Text>
+          <Text>{bank.bankName} | A/C: {bank.accountNumber} | IFSC: {bank.ifsc}</Text>
         </View>
 
         <View style={s.mb}>

@@ -37,7 +37,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
 
   // Form State
   const [client, setClient] = useState({
-    name: '', address: '', gstin: '', email: '', mobile: '', state: 'KARNATAKA', pincode: ''
+    name: '', address: '', gstin: '', email: '', mobile: '', state: 'KARNATAKA', pincode: '', accountNumber: ''
   });
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
@@ -99,7 +99,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
             email: loadedClient.email || '',
             mobile: loadedClient.mobile || '',
             state: loadedClient.state || 'KARNATAKA',
-            pincode: loadedClient.pincode || ''
+            pincode: loadedClient.pincode || '',
+            accountNumber: loadedClient.accountNumber || ''
           });
 
           // Set selected client ID directly from the invoice
@@ -115,7 +116,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
         } else {
           // Reset for New Invoice
           setSelectedClientId('');
-          setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: company?.state || 'KARNATAKA', pincode: '' });
+          setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: company?.state || 'KARNATAKA', pincode: '', accountNumber: '' });
           setPlaceOfSupply(company?.state || 'KARNATAKA');
           setGstRate(18);
           setItems([{ description: '', hsn: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
@@ -160,13 +161,14 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
           email: selected.email || '',
           mobile: selected.mobile || '',
           state: selected.state || 'KARNATAKA',
-          pincode: selected.pincode || ''
+          pincode: selected.pincode || '',
+          accountNumber: selected.accountNumber || ''
         });
         setPlaceOfSupply(selected.state || companyData?.state || 'KARNATAKA');
       }
     } else {
       // Clear fields if "Select Client" placeholder picked
-      setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: companyData?.state || 'KARNATAKA', pincode: '' });
+      setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: companyData?.state || 'KARNATAKA', pincode: '', accountNumber: '' });
       setPlaceOfSupply(companyData?.state || 'KARNATAKA');
     }
   };
@@ -237,7 +239,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
             <div style="font-size: 13px; color: #475569;">
               ${data.client.address}<br>
               ${data.client.state}<br>
-              GSTIN: ${data.client.gstin || 'N/A'}
+              GSTIN: ${data.client.gstin || 'N/A'}<br>
+              Account Number: ${data.client.accountNumber || 'N/A'}
             </div>
           </div>
           <div class="col text-right">
@@ -648,6 +651,15 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
                   </div>
+                  {/* <div className="relative">
+                    <CreditCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <input
+                      placeholder="Account Number"
+                      value={client.accountNumber}
+                      onChange={e => setClient({ ...client, accountNumber: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div> */}
                   <div className="md:col-span-2 relative">
                     <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <input
