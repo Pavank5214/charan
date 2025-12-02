@@ -21,7 +21,8 @@ const PORT = process.env.PORT || 8080;
 // ✅ Allowed Origins
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://charan-6p3w.vercel.app", // frontend
+  "https://charan-6p3w.vercel.app", 
+  "https://charan-liard.vercel.app"// frontend
 ];
 
 // ✅ Updated CORS setup
@@ -40,8 +41,7 @@ app.use(
   })
 );
 
-// ✅ Express v5 fix: handle preflight properly
-app.options(/.*/, cors());
+
 
 // Body parser (only once!)
 app.use(express.json());
