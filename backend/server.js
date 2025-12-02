@@ -18,30 +18,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Allowed origins (add more later if needed)
-const allowedOrigins = [
-  "http://localhost:5173",                    // Vite dev
-  "https://paripoorna-s299.vercel.app",       // Your production frontend
-  "https://charan-6p3w.vercel.app",           // New frontend origin
-  "https://charan-6p3w-1zqhyk0yj-pavank5214s-projects.vercel.app", // Updated frontend origin
-];
-
 // CORS Configuration — PATCH is now included!
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // PATCH ADDED HERE
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors({origin: 'https://charan-6p3w-1q69nmwyv-pavank5214s-projects.vercel.app/'}));
 
 // Body parser (only once!)
 app.use(express.json());
