@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, Plus, User, Trash2, Download, Loader2,
   Building, Phone, Mail, MapPin, FileText, Edit3,
-  Calendar, Percent, ChevronDown, CreditCard, Save
+  Calendar, Percent, ChevronDown, CreditCard, Save, Sparkles
 } from 'lucide-react';
-import { toast } from 'react-hot-toast'; // <--- IMPORT TOAST
+import { toast } from 'react-hot-toast';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}`;
 
+// --- Utility: Convert Number to Words ---
 const numberToWords = (num) => {
   if (!num) return 'Zero Rupees Only';
   const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
@@ -28,7 +29,8 @@ const numberToWords = (num) => {
   return convert(Math.round(num)) + ' Rupees Only';
 };
 
-const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }) => {
+// --- Main Component ---
+const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, aiPrefillData }) => {
   const [loading, setLoading] = useState(true);
   const [companyData, setCompanyData] = useState(null);
   const [clients, setClients] = useState([]);
@@ -52,14 +54,14 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const token = localStorage.getItem('token') || 'demo_token';
+  const token = localStorage.getItem('token');
 
   const generatePrefix = (name) => {
     if (!name) return 'INV';
     return name.trim().split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 6) || 'INV';
   };
 
-  // INITIALIZATION LOGIC
+  // --- 1. INITIALIZATION & DATA FETCHING ---
   useEffect(() => {
     if (!isOpen) return;
 
@@ -67,30 +69,32 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
       try {
         setLoading(true);
 
-        // 1. Fetch Data
+        // Fetch Company & Client Data
         let company = { name: 'Your Company', state: 'KARNATAKA', address: '', email: '', phone: '' };
         let clientsList = [];
 
         try {
-            const res = await fetch(`${API_URL}/settings/me`, { headers: { Authorization: `Bearer ${token}` } });
-            if (res.ok) {
-                const data = await res.json();
-                company = data.company || company;
-            }
-            const clientsRes = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
-            if (clientsRes.ok) {
-                const data = await clientsRes.json();
-                clientsList = Array.isArray(data) ? data : [];
-            }
+          const res = await fetch(`${API_URL}/settings/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const data = await res.json();
+            company = data.company || company;
+          }
+          const clientsRes = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
+          if (clientsRes.ok) {
+            const data = await clientsRes.json();
+            clientsList = Array.isArray(data) ? data : [];
+          }
         } catch (e) {
-            console.warn("API Fetch failed, using defaults/mock");
+          console.warn("API Fetch failed, using defaults/mock");
         }
 
         setCompanyData(company);
         setClients(clientsList);
 
-        // 2. Setup Form State
+        // --- Logic Branching: Edit vs AI vs New ---
+        
         if (invoiceToEdit) {
+          // MODE: EDIT EXISTING INVOICE
           const loadedClient = invoiceToEdit.clientId || {};
           setClient({
             name: loadedClient.name || '',
@@ -103,7 +107,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
             accountNumber: loadedClient.accountNumber || ''
           });
 
-          // Set selected client ID directly from the invoice
           if (invoiceToEdit.clientId?._id) {
             setSelectedClientId(invoiceToEdit.clientId._id);
           }
@@ -113,9 +116,73 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
           setPlaceOfSupply(invoiceToEdit.placeOfSupply || loadedClient.state || 'KARNATAKA');
           setGstRate(invoiceToEdit.gstRate || 18);
           setItems(invoiceToEdit.items?.map(item => ({ ...item, unit: item.unit || 'NOS' })) || [{ description: '', hsn: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
+
+        } else if (aiPrefillData) {
+          // MODE: AI PREFILL (NEW INVOICE)
+          toast.success("AI extracted invoice details!", { icon: "✨" });
+
+          const aiClient = aiPrefillData.client || {};
+          
+          // Try to match AI client name with existing clients
+          const existingClient = clientsList.find(c => c.name.toLowerCase() === aiClient.name?.toLowerCase());
+
+          if (existingClient) {
+             // Match Found: Use existing client ID
+             setSelectedClientId(existingClient._id);
+             setClient({
+                name: existingClient.name,
+                address: existingClient.address,
+                gstin: existingClient.gstin,
+                email: existingClient.email,
+                mobile: existingClient.mobile,
+                state: existingClient.state,
+                pincode: existingClient.pincode,
+                accountNumber: existingClient.accountNumber
+             });
+             setPlaceOfSupply(existingClient.state || company?.state);
+          } else {
+             // No Match: Fill form and enable "Add New" mode
+             setSelectedClientId('');
+             setShowAddClient(true);
+             setClient({
+               name: aiClient.name || '',
+               address: aiClient.address || '',
+               gstin: aiClient.gstin || '',
+               email: aiClient.email || '',
+               mobile: aiClient.mobile || '',
+               state: aiClient.state || company?.state || 'KARNATAKA',
+               pincode: '',
+               accountNumber: ''
+             });
+             setPlaceOfSupply(aiClient.state || company?.state || 'KARNATAKA');
+          }
+
+          // Items
+          if (aiPrefillData.items && aiPrefillData.items.length > 0) {
+            setItems(aiPrefillData.items.map(i => ({
+              description: i.description || '',
+              hsn: i.hsn || '',
+              qty: Number(i.qty) || 1,
+              unit: 'NOS',
+              rate: Number(i.rate) || 0,
+              discount: Number(i.discount) || 0
+            })));
+          }
+
+          // Generate New Invoice Number logic
+          const today = new Date();
+          const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+          const fyEnd = fyStart + 1;
+          const fyString = `${fyStart.toString().slice(2)}-${fyEnd.toString().slice(2)}`;
+          const prefix = company?.invoicePrefix || generatePrefix(company?.name);
+          setInvoiceNumber(company?.nextInvoiceNumber || `${prefix}/${fyString}/001`);
+          setInvoiceDate(today.toISOString().split('T')[0]);
+          setGstRate(18);
+
         } else {
-          // Reset for New Invoice
+          // MODE: STANDARD NEW INVOICE
           setSelectedClientId('');
+          setShowAddClient(false);
           setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: company?.state || 'KARNATAKA', pincode: '', accountNumber: '' });
           setPlaceOfSupply(company?.state || 'KARNATAKA');
           setGstRate(18);
@@ -136,22 +203,22 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
         }
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load invoice data");
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [isOpen, token, invoiceToEdit]);
+  }, [isOpen, token, invoiceToEdit, aiPrefillData]);
 
-  // Handle Client Selection
+  // --- 2. HANDLERS ---
+
   const handleClientSelect = (e) => {
     const id = e.target.value;
     setSelectedClientId(id);
     
     if (id) {
-      // Robust ID matching (handles string vs number issues)
       const selected = clients.find(c => String(c._id) === String(id));
       if (selected) {
         setClient({
@@ -167,13 +234,11 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
         setPlaceOfSupply(selected.state || companyData?.state || 'KARNATAKA');
       }
     } else {
-      // Clear fields if "Select Client" placeholder picked
       setClient({ name: '', address: '', gstin: '', email: '', mobile: '', state: companyData?.state || 'KARNATAKA', pincode: '', accountNumber: '' });
       setPlaceOfSupply(companyData?.state || 'KARNATAKA');
     }
   };
 
-  // Calculations
   const { subtotal, gst, total } = useMemo(() => {
     const sub = items.reduce((acc, item) => {
       const amount = item.qty * item.rate * (100 - (item.discount || 0)) / 100;
@@ -184,7 +249,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
     return { subtotal: Number(sub.toFixed(2)), gst: gstAmt, total: totalAmt };
   }, [items, gstRate]);
 
-  // HTML Preview Generator
   const generateHTMLPreview = (data) => {
     const htmlContent = `
       <!DOCTYPE html>
@@ -240,7 +304,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
               ${data.client.address}<br>
               ${data.client.state}<br>
               GSTIN: ${data.client.gstin || 'N/A'}<br>
-              Account Number: ${data.client.accountNumber || 'N/A'}
             </div>
           </div>
           <div class="col text-right">
@@ -305,7 +368,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
   };
 
   const generatePDF = async () => {
-    // REPLACED ALERT WITH TOAST
     if (!client.name?.trim()) return toast.error('Please enter Client Name');
     if (!items.some(i => i.description?.trim())) return toast.error('Please add at least one item');
 
@@ -339,7 +401,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
   };
 
   const saveInvoice = async () => {
-    // REPLACED ALERTS WITH TOAST
     if (!client.name?.trim()) return toast.error('Client name is required');
     if (!selectedClientId && !showAddClient) return toast.error('Please select a client or add a new one');
     if (!items.some(i => i.description?.trim())) return toast.error('Add at least one item');
@@ -350,7 +411,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
     try {
       let clientId = selectedClientId;
 
-      // If adding new client, create it first
+      // Handle "Add New Client" on the fly
       if (showAddClient && client.name?.trim()) {
         try {
           const clientRes = await fetch(`${API_URL}/clients`, {
@@ -364,19 +425,14 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
           if (clientRes.ok) {
             const clientData = await clientRes.json();
             clientId = clientData._id;
-            // Refresh clients list
-            const clientsRes = await fetch(`${API_URL}/clients`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (clientsRes.ok) {
-              const clientsData = await clientsRes.json();
-              setClients(clientsData);
-            }
-            toast.success("New client added automatically");
+            // Update local cache if needed, but we are closing modal anyway
+            toast.success("New client saved!");
           }
         } catch (clientErr) {
           console.warn("Client creation failed:", clientErr);
-          toast.error("Failed to create new client");
+          toast.error("Failed to save new client");
+          setSaveLoading(false);
+          return;
         }
       }
 
@@ -389,6 +445,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
         items: items.filter(i => i.description?.trim())
       };
 
+      // If aiPrefillData is present, it's a POST (New), even if not explicitly "Editing"
       const res = await fetch(invoiceToEdit ? `${API_URL}/invoice/${invoiceToEdit._id}` : `${API_URL}/invoice`, {
         method: invoiceToEdit ? 'PUT' : 'POST',
         headers: {
@@ -401,7 +458,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
       if (res.ok) {
         const data = await res.json();
         onInvoiceCreated?.(data.invoice);
-        // SUCCESS TOAST
         toast.success(invoiceToEdit ? 'Invoice updated successfully!' : 'Invoice created successfully!');
         onClose();
       } else {
@@ -413,7 +469,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
     } catch (err) {
       console.error('Save failed:', err);
       setSaveError('Failed to save invoice');
-      toast.error('Failed to save invoice. Please try again.');
+      toast.error('Network error. Check console.');
     } finally {
       setSaveLoading(false);
     }
@@ -439,10 +495,17 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-white z-10">
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <FileText className="w-6 h-6 text-indigo-600" />
-            </div>
-            {invoiceToEdit ? 'Edit Invoice' : 'Create New Invoice'}
+             {aiPrefillData ? (
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg shadow-indigo-500/30">
+                    <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                </div>
+            ) : (
+                <div className="p-2 bg-indigo-50 rounded-lg">
+                    <FileText className="w-6 h-6 text-indigo-600" />
+                </div>
+            )}
+            
+            {invoiceToEdit ? 'Edit Invoice' : aiPrefillData ? 'AI Generated Invoice (Draft)' : 'Create New Invoice'}
           </h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-6 h-6" />
@@ -582,10 +645,9 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                   </div>
                 ) : (
-                  <div className="p-4 bg-indigo-50 rounded-xl mb-4 border border-indigo-100">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-bold text-indigo-900">New Client Details</span>
-                    </div>
+                  <div className="p-4 bg-indigo-50 rounded-xl mb-4 border border-indigo-100 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-bold text-indigo-900">New Client Details</span>
                   </div>
                 )}
 
@@ -651,15 +713,6 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit }
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
                   </div>
-                  {/* <div className="relative">
-                    <CreditCard className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <input
-                      placeholder="Account Number"
-                      value={client.accountNumber}
-                      onChange={e => setClient({ ...client, accountNumber: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                    />
-                  </div> */}
                   <div className="md:col-span-2 relative">
                     <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <input

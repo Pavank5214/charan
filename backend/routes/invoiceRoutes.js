@@ -6,11 +6,19 @@ const router = express.Router();
 // ---------- CREATE ----------
 router.post('/', auth, async (req, res) => {
   try {
+    const { clientId } = req.body;
+
+    // Validate clientId if provided
+    if (clientId && !require('mongoose').Types.ObjectId.isValid(clientId)) {
+      return res.status(400).json({ message: 'Please select a valid client before saving the invoice' });
+    }
+
     const invoice = new Invoice({
       ...req.body,
       companyId: req.user.currentCompanyId // Attach to logged-in user's company
     });
     const saved = await invoice.save();
+    await saved.populate('clientId');
     res.status(201).json({ invoice: saved });
   } catch (err) {
     console.error('Invoice Save Error:', err);
@@ -51,6 +59,13 @@ router.get('/:id', auth, async (req, res) => {
 // ---------- UPDATE FULL (EDIT) ----------
 router.put('/:id', auth, async (req, res) => {
   try {
+    const { clientId } = req.body;
+
+    // Validate clientId if provided
+    if (clientId && !require('mongoose').Types.ObjectId.isValid(clientId)) {
+      return res.status(400).json({ message: 'Valid client ID is required' });
+    }
+
     const updated = await Invoice.findOneAndUpdate(
       { _id: req.params.id, companyId: req.user.currentCompanyId },
       req.body,

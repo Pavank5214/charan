@@ -12,6 +12,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const purchaseOrdersRoutes = require("./routes/purchaseOrdersRoutes");
 const expensesRoutes = require("./routes/expensesRoutes")
 const reportRoutes = require("./routes/reportsRoutes")
+const aiRoutes = require("./routes/aiRoutes")
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ app.use('/api/payments',paymentRoutes)
 app.use('/api/purchase-orders', purchaseOrdersRoutes)
 app.use('/api/expenses', expensesRoutes)
 app.use('/api/reports',reportRoutes)
+app.use('/api/ai',aiRoutes)
 
 // Optional: Global error handler for CORS errors (nice to have)
 app.use((err, req, res, next) => {
