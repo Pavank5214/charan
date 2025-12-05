@@ -18,11 +18,12 @@ const Settings = () => {
 
   // 1. Initial State
   const [business, setBusiness] = useState({
-    name: '', gstin: '', address: '', city: '', state: '', pincode: '', phone: '', email: '',
+    name: '', subTitle: '', gstin: '', address: '', city: '', state: '', pincode: '', phone: '', email: '',
   });
 
   const [invoiceDefaults, setInvoiceDefaults] = useState({
     bankName: '', accountNumber: '', ifsc: '', upiId: '', paymentTerms: '', notes: '', footerText: '', logo: '',
+    defaultSubject: '', defaultIntro: '', terms: ''
   });
 
   const [quotationDefaults, setQuotationDefaults] = useState({
@@ -39,6 +40,7 @@ const Settings = () => {
       if (company) {
         setBusiness({
           name: company.name || '',
+          subTitle: company.subTitle || '',
           gstin: company.gstin || '',
           address: company.address || '',
           city: company.city || '',
@@ -57,17 +59,18 @@ const Settings = () => {
           notes: company.invoiceSettings?.notes || '',
           footerText: company.invoiceSettings?.footerText || '',
           logo: company.logo || '',
+          defaultSubject: company.invoiceSettings?.defaultSubject || '',
+          defaultIntro: company.invoiceSettings?.defaultIntro || '',
+          terms: company.invoiceSettings?.terms || '',
         });
 
-        if (company.quotationSettings) {
-           setQuotationDefaults({
-             prefix: company.quotationSettings.prefix || '',
-             defaultValidityDays: company.quotationSettings.defaultValidityDays || '',
-             defaultSubject: company.quotationSettings.defaultSubject || '',
-             defaultIntro: company.quotationSettings.defaultIntro || '',
-             terms: company.quotationSettings.terms || '',
-           });
-        }
+        setQuotationDefaults({
+          prefix: company.quotationSettings?.prefix || 'QUO',
+          defaultValidityDays: company.quotationSettings?.defaultValidityDays || 30,
+          defaultSubject: company.quotationSettings?.defaultSubject || 'Quotation for Services',
+          defaultIntro: company.quotationSettings?.defaultIntro || 'Thank you for considering our services. We are pleased to provide the following quotation.',
+          terms: company.quotationSettings?.terms || '1. Payment terms: 50% advance, 50% on completion.\n2. Validity: 30 days from date of quotation.\n3. All prices are exclusive of GST.',
+        });
 
         if (company.logo) setLogoPreview(company.logo);
       }
@@ -85,14 +88,23 @@ const Settings = () => {
   const saveAll = async () => {
     setIsSaving(true);
     try {
-      await Promise.all([
-        axios.put(`${API_URL}/settings/business`, business, headers),
-        axios.put(`${API_URL}/settings/invoice-defaults`, invoiceDefaults, headers),
-        axios.put(`${API_URL}/settings/quotation-defaults`, quotationDefaults, headers)
-      ]);
+      // STEP 1: Save Business Details First
+      await axios.put(`${API_BASE}/settings/business`, business, headers);
+      
+      // STEP 2: Save Invoice Defaults
+      await axios.put(`${API_BASE}/settings/invoice-defaults`, invoiceDefaults, headers);
+      
+      // STEP 3: Save Quotation Defaults (Last)
+      // We log this to ensure the data is actually present before sending
+      console.log("Sending Quotation Data:", quotationDefaults); 
+      await axios.put(`${API_BASE}/settings/quotation-defaults`, quotationDefaults, headers);
+
       toast.success('Settings saved successfully!');
       setIsEditing(false);
-      fetchData();
+      
+      // STEP 4: Reload data to confirm it saved
+      await fetchData(); 
+      
     } catch (err) {
       console.error(err);
       toast.error('Failed to save settings.');
@@ -184,6 +196,12 @@ const Settings = () => {
                       className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 w-full"
                     />
                     <input
+                      value={business.subTitle}
+                      onChange={(e) => setBusiness({ ...business, subTitle: e.target.value })}
+                      placeholder="Business Subtitle"
+                      className="px-4 py-3 border rounded-lg w-full"
+                    />
+                    <input
                       value={business.gstin}
                       onChange={(e) => setBusiness({ ...business, gstin: e.target.value.toUpperCase() })}
                       placeholder="GSTIN"
@@ -232,6 +250,10 @@ const Settings = () => {
                     <div className="space-y-1">
                       <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Business Name</label>
                       <p className="px-4 py-3 bg-gray-50 rounded-lg min-h-[46px] text-gray-900">{business.name || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Business Subtitle</label>
+                      <p className="px-4 py-3 bg-gray-50 rounded-lg min-h-[46px] text-gray-900">{business.subTitle || '-'}</p>
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">GSTIN</label>
@@ -405,6 +427,60 @@ const Settings = () => {
                     <div className="md:col-span-2 space-y-1">
                       <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Default Notes</label>
                       <p className="px-4 py-3 bg-gray-50 rounded-lg whitespace-pre-wrap min-h-[46px] text-gray-900">{invoiceDefaults.notes || '-'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Default Content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 border-t pt-6">
+                <h3 className="md:col-span-2 text-lg font-semibold text-gray-800">Default Content</h3>
+                {isEditing ? (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Default Subject</label>
+                      <input
+                        value={invoiceDefaults.defaultSubject}
+                        onChange={(e) => setInvoiceDefaults({ ...invoiceDefaults, defaultSubject: e.target.value })}
+                        placeholder="e.g. Invoice for Services"
+                        className="w-full px-4 py-3 border rounded-lg font-medium"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Introduction Text</label>
+                      <textarea
+                        value={invoiceDefaults.defaultIntro}
+                        onChange={(e) => setInvoiceDefaults({ ...invoiceDefaults, defaultIntro: e.target.value })}
+                        rows={2}
+                        placeholder="Thank you for your business. Please find the invoice details below."
+                        className="w-full px-4 py-3 border rounded-lg"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Terms & Conditions</label>
+                      <textarea
+                        value={invoiceDefaults.terms}
+                        onChange={(e) => setInvoiceDefaults({ ...invoiceDefaults, terms: e.target.value })}
+                        rows={6}
+                        placeholder="List your standard terms here..."
+                        className="w-full px-4 py-3 border rounded-lg font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Appears at the bottom of every invoice</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Default Subject</label>
+                      <p className="px-4 py-3 bg-gray-50 rounded-lg font-medium min-h-[46px] text-gray-900">{invoiceDefaults.defaultSubject || '-'}</p>
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Introduction Text</label>
+                      <p className="px-4 py-3 bg-gray-50 rounded-lg min-h-[46px] text-gray-900">{invoiceDefaults.defaultIntro || '-'}</p>
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs md:text-sm font-medium text-gray-500 uppercase">Terms & Conditions</label>
+                      <pre className="px-4 py-3 bg-gray-50 rounded-lg whitespace-pre-wrap font-mono text-sm min-h-[46px] text-gray-900 overflow-x-auto">{invoiceDefaults.terms || '-'}</pre>
                     </div>
                   </>
                 )}

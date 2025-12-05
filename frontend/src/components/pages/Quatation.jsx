@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
-  FileText, Search, IndianRupee, Eye,
-  Download, X, Plus, Edit, Trash2,
+  FileText, Search, Eye, Download, X, Plus, Edit, Trash2,
   Filter, ChevronDown, CheckCircle, Clock, AlertCircle,
   XCircle, RefreshCw, FileCheck
 } from 'lucide-react';
@@ -17,11 +17,28 @@ const Quotations = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState(null);
+  const [aiPrefillData, setAiPrefillData] = useState(null); // New State for AI Data
+
+  // Preview States
   const [previewQuotation, setPreviewQuotation] = useState(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+
+  const location = useLocation();
+
+  // 1. Check for AI Data on Load
+  useEffect(() => {
+    if (location.state?.openModal && location.state?.aiData) {
+      setAiPrefillData(location.state.aiData);
+      setIsModalOpen(true);
+      // Optional: Clear state so it doesn't reopen on refresh (aggressive but safe)
+      // window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Fetch all quotations
   const fetchQuotations = async () => {
@@ -38,7 +55,6 @@ const Quotations = () => {
       setQuotations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      // alert("Failed to load quotations");
     } finally {
       setLoading(false);
     }
@@ -48,18 +64,95 @@ const Quotations = () => {
 
   const handleQuotationSaved = () => {
     fetchQuotations();
-    setIsModalOpen(false);
-    setEditingQuotation(null);
+    handleCloseModal();
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingQuotation(null);
+    setAiPrefillData(null); // Clear AI data on close
+    
+    // Clear the location state logic to prevent immediate reopening if user navigates back/forth
+    if (location.state?.openModal) {
+       window.history.replaceState({}, document.title);
+    }
   };
 
   const handleEdit = (q) => {
     setEditingQuotation(q);
+    setAiPrefillData(null); // Ensure no AI data conflicts
     setIsModalOpen(true);
+  };
+
+  const handleStatusChange = (id, newStatus, currentStatus) => {
+    if (newStatus === currentStatus) return; // No change needed
+
+    toast((t) => (
+      <div className="flex flex-col gap-3 min-w-[240px]">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-50 rounded-full shrink-0">
+            <RefreshCw className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 text-sm">Change Status?</h3>
+            <p className="text-gray-500 text-xs mt-1">Update quotation status to <span className="capitalize font-medium">{newStatus}</span></p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end mt-1">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => executeStatusChange(id, newStatus, t.id)}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
+          >
+            Update
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 5000,
+      position: 'top-center',
+      style: {
+        background: '#fff',
+        padding: '12px',
+        borderRadius: '16px',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #f3f4f6'
+      },
+    });
+  };
+
+  const executeStatusChange = async (id, newStatus, toastId) => {
+    toast.dismiss(toastId);
+    const loadingToast = toast.loading('Updating status...');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!res.ok) throw new Error('Failed to update status');
+
+      // Update local state
+      setQuotations(prev => prev.map(q =>
+        q._id === id ? { ...q, status: newStatus } : q
+      ));
+
+      toast.success('Status updated successfully', { id: loadingToast });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update status', { id: loadingToast });
+    }
   };
 
   const handleDelete = (id) => {
@@ -74,7 +167,7 @@ const Quotations = () => {
             <p className="text-gray-500 text-xs mt-1">This action cannot be undone.</p>
           </div>
         </div>
-        
+
         <div className="flex gap-2 justify-end mt-1">
           <button
             onClick={() => toast.dismiss(t.id)}
@@ -129,7 +222,7 @@ const Quotations = () => {
     }
   };
 
-  // Helper – Indian number to words (Moved out of component or duplicated here)
+  // Helper – Indian number to words
   const numberToWords = (num) => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
       'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -154,16 +247,37 @@ const Quotations = () => {
   const generatePDFBlob = async (quotation) => {
     setPdfLoading(true);
     try {
-      // Updated Company Info to match Screenshot
-      const company = {
-        name: 'SRI MANJUNATHA ELECTRICAL & CONTROLS',
-        subTitle: '(Mfg All Type Power Switchboards, Control panels & bus ducts)',
-        address: 'No.19, 3rd Main Road, Kasturba Nagar, Near Mysore Road Tollgate',
-        city: 'BENGALURU',
-        zip: '560026',
-        email: 'srimanjunathaelectricalcontrol@gmail.com',
-        phone: '9535982016',
-        gstin: '29HTKPK5803F1ZE',
+      // Fetch company settings and quotation defaults
+      const token = localStorage.getItem('token');
+      const settingsRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/settings/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      let company = {};
+      let quotationDefaults = {};
+
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        company = settingsData.company || {};
+        quotationDefaults = company.quotationSettings || {};
+      }
+
+      // Set defaults if missing
+      const companyData = {
+        name: company.name || 'Company Name',
+        subTitle: company.subTitle || '',
+        address: company.address || '',
+        city: company.city || '',
+        zip: company.pincode || '',
+        email: company.email || '',
+        phone: company.phone || '',
+        gstin: company.gstin || '',
+      };
+
+      const defaults = {
+        defaultSubject: quotationDefaults.defaultSubject || 'Quotation for Services',
+        defaultIntro: quotationDefaults.defaultIntro || 'Thank you for considering our services. We are pleased to provide the following quotation.',
+        terms: quotationDefaults.terms || '1. Payment terms: 50% advance, 50% on completion.\n2. Validity: 30 days from date of quotation.\n3. All prices are exclusive of GST.'
       };
 
       const safeClient = {
@@ -174,12 +288,13 @@ const Quotations = () => {
       };
 
       const pdfData = {
-        company,
+        company: companyData,
         client: safeClient,
         number: quotation.quotationNumber || 'Q-000',
-        date: quotation.quotationDate, // Passed as raw string, QuotationPDF handles formatting
+        date: quotation.quotationDate, 
         validUntil: quotation.validUntil,
         gstRate: quotation.gstRate || 18,
+        defaults,
         items: (quotation.items || []).map(item => ({
           description: item.description || 'Service/Item',
           hsn: item.hsn || 'N/A',
@@ -187,7 +302,7 @@ const Quotations = () => {
           unit: item.unit || 'Nos',
           rate: item.rate || 0,
           amount: (item.qty * item.rate * (1 - (item.discount || 0) / 100)) || 0,
-          make: item.make || '-' // Added Make field
+          make: item.make || '-'
         })),
         totals: {
           subtotal: Number(quotation.subtotal) || 0,
@@ -245,6 +360,7 @@ const Quotations = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case 'accepted': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'rejected': return 'bg-red-50 text-red-700 border-red-100';
       case 'sent': return 'bg-blue-50 text-blue-700 border-blue-100';
       case 'converted': return 'bg-purple-50 text-purple-700 border-purple-100';
@@ -255,6 +371,7 @@ const Quotations = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'accepted': return <CheckCircle className="w-3.5 h-3.5 mr-1" />;
+      case 'approved': return <CheckCircle className="w-3.5 h-3.5 mr-1" />;
       case 'rejected': return <XCircle className="w-3.5 h-3.5 mr-1" />;
       case 'sent': return <Clock className="w-3.5 h-3.5 mr-1" />;
       case 'converted': return <RefreshCw className="w-3.5 h-3.5 mr-1" />;
@@ -270,7 +387,7 @@ const Quotations = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 md:mb-8 gap-4">
           <div className="flex shrink-0">
             <button
-              onClick={() => { setEditingQuotation(null); setIsModalOpen(true); }}
+              onClick={() => { setEditingQuotation(null); setAiPrefillData(null); setIsModalOpen(true); }}
               className="w-full md:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm hover:shadow"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -306,7 +423,7 @@ const Quotations = () => {
                 <option value="all">All Status</option>
                 <option value="draft">Draft</option>
                 <option value="sent">Sent</option>
-                <option value="accepted">Accepted</option>
+                <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
                 <option value="converted">Converted</option>
               </select>
@@ -333,30 +450,18 @@ const Quotations = () => {
           </div>
         ) : (
           <>
-            {/* DESKTOP VIEW: Table */}
-            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
+          
+              {/* DESKTOP TABLE */}
+              <div className="hidden md:block overflow-x-auto min-h-[400px]">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50/50">
                     <tr>
-                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Quotation Details
-                      </th>
-                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Client
-                      </th>
-                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Date / Valid Until
-                      </th>
-                      <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th scope="col" className="relative px-6 py-4">
-                        <span className="sr-only">Actions</span>
-                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quotation Details</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date / Valid</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
@@ -364,50 +469,32 @@ const Quotations = () => {
                       <tr key={q._id} className="hover:bg-gray-50/80 transition-colors group">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 font-bold text-sm">
-                              Q
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900">{q.quotationNumber}</div>
-                              <div className="text-xs text-gray-500">Estimate</div>
-                            </div>
+                            <div className="flex-shrink-0 h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 font-bold text-sm">Q</div>
+                            <div className="ml-4"><div className="text-sm font-semibold text-gray-900">{q.quotationNumber}</div><div className="text-xs text-gray-500">Estimate</div></div>
                           </div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{q.client?.name}</div><div className="text-xs text-gray-500">{q.client?.email || 'No email'}</div></td>
+                        <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(q.quotationDate).toLocaleDateString('en-IN')}</div><div className="text-xs text-gray-400">Valid: {new Date(q.validUntil).toLocaleDateString('en-IN')}</div></td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{q.client?.name}</div>
-                          <div className="text-xs text-gray-500">{q.client?.email || 'No email'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {new Date(q.quotationDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                          <div className="relative inline-block text-left">
+                            <select
+                              value={q.status || 'draft'}
+                              onChange={(e) => handleStatusChange(q._id, e.target.value, q.status)}
+                              className={`appearance-none pl-8 pr-8 py-1.5 rounded-full text-xs font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition-all ${getStatusStyle(q.status)}`}
+                            >
+                              <option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="converted">Converted</option>
+                            </select>
+                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">{getStatusIcon(q.status)}</div>
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-50"><ChevronDown className="w-3 h-3" /></div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Valid: {new Date(q.validUntil).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyle(q.status)}`}>
-                            {getStatusIcon(q.status)}
-                            <span className="capitalize">{q.status || 'Draft'}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                          ₹{Number(q.total || 0).toLocaleString('en-IN')}
-                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">₹{Number(q.total || 0).toLocaleString('en-IN')}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleView(q)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Preview">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDownload(q)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Download">
-                              <Download className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleEdit(q)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDelete(q._id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <button onClick={() => handleView(q)} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><Eye className="w-4 h-4" /></button>
+                            <button onClick={() => handleDownload(q)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"><Download className="w-4 h-4" /></button>
+                            <button onClick={() => { setEditingQuotation(q); setIsModalOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                            <button onClick={() => handleDelete(q._id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
@@ -415,7 +502,6 @@ const Quotations = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
 
             {/* MOBILE VIEW: Card Layout */}
             <div className="md:hidden space-y-4">
@@ -431,9 +517,33 @@ const Quotations = () => {
                         <p className="text-xs text-gray-500">{new Date(q.quotationDate).toLocaleDateString('en-IN')}</p>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusStyle(q.status)}`}>
-                      <span className="capitalize">{q.status || 'Draft'}</span>
-                    </span>
+                    <div className="relative">
+                      <button
+                        onClick={() => setQuotations(prev => prev.map(item =>
+                          item._id === q._id ? { ...item, showStatusDropdown: !item.showStatusDropdown } : { ...item, showStatusDropdown: false }
+                        ))}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${getStatusStyle(q.status)}`}
+                      >
+                        <span className="capitalize">{q.status || 'Draft'}</span>
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </button>
+                      {q.showStatusDropdown && (
+                        <div className="absolute z-10 mt-1 right-0 w-32 bg-white border border-gray-200 rounded-lg shadow-lg">
+                          {['draft', 'sent', 'approved', 'rejected', 'converted'].map(status => (
+                            <button
+                              key={status}
+                              onClick={() => {
+                                handleStatusChange(q._id, status);
+                                setQuotations(prev => prev.map(item => ({ ...item, showStatusDropdown: false })));
+                              }}
+                              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 capitalize ${q.status === status ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}
+                            >
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="flex justify-between items-center mb-4">
@@ -477,6 +587,7 @@ const Quotations = () => {
         onClose={handleCloseModal}
         onCreated={handleQuotationSaved}
         quotationToEdit={editingQuotation}
+        aiPrefillData={aiPrefillData}
       />
 
       {/* Preview Modal - Responsive */}

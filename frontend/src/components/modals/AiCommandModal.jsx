@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, X, ArrowRight, MessageSquarePlus, FileText, Loader2 } from 'lucide-react';
+import { Sparkles, X, ArrowRight, MessageSquarePlus, FileText, Loader2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Ensure this matches your .env variable
@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const AiCommandModal = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState('invoice'); // 'invoice' | 'quotation'
   const navigate = useNavigate();
 
   // Focus input & Lock Scroll when open
@@ -16,6 +17,7 @@ const AiCommandModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       setQuery('');
       setIsLoading(false);
+      setMode('invoice'); // Reset to invoice by default
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -25,8 +27,10 @@ const AiCommandModal = ({ isOpen, onClose }) => {
 
   const handleGenerate = async (e) => {
     e?.preventDefault();
+    const docType = mode === 'invoice' ? 'invoice' : 'quotation';
+
     if (!query.trim()) {
-      toast.error('Please describe the invoice you want to create.');
+      toast.error(`Please describe the ${docType} you want to create.`);
       return;
     }
 
@@ -34,8 +38,13 @@ const AiCommandModal = ({ isOpen, onClose }) => {
     try {
       const token = localStorage.getItem('token');
       
+      // Determine the correct endpoint based on mode
+      const endpoint = mode === 'invoice' 
+        ? `${API_URL}/ai/parse-invoice` 
+        : `${API_URL}/ai/parse-quotation`;
+
       // Call Backend to parse text
-      const response = await fetch(`${API_URL}/ai/parse-invoice`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,16 +54,21 @@ const AiCommandModal = ({ isOpen, onClose }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to parse invoice data');
+        throw new Error('Failed to parse data');
       }
 
-      const invoiceData = await response.json();
+      const parsedData = await response.json();
       
-      toast.success('Invoice details extracted!');
+      toast.success(`${docType.charAt(0).toUpperCase() + docType.slice(1)} details extracted!`);
       onClose();
       
-      // Navigate to Invoices page with the parsed data
-      navigate('/invoices', { state: { aiData: invoiceData, openModal: true } });
+      // Navigate based on Mode
+      if (mode === 'invoice') {
+        navigate('/invoices', { state: { aiData: parsedData, openModal: true } });
+      } else {
+        // Assuming your Quotations route is /quotations
+        navigate('/quotations', { state: { aiData: parsedData, openModal: true } });
+      }
 
     } catch (error) {
       console.error('AI Error:', error);
@@ -88,7 +102,9 @@ const AiCommandModal = ({ isOpen, onClose }) => {
         
         {/* Breathing Glow Layer */}
         <div 
-          className="absolute -inset-1 rounded-[28px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 blur-xl opacity-20 animate-pulse group-hover:opacity-40 transition-all duration-700"
+          className={`absolute -inset-1 rounded-[28px] bg-gradient-to-r blur-xl opacity-20 animate-pulse group-hover:opacity-40 transition-all duration-700
+            ${mode === 'invoice' ? 'from-indigo-500 via-purple-500 to-pink-500' : 'from-emerald-500 via-teal-500 to-cyan-500'}
+          `}
         ></div>
 
         {/* 3. Inner Content */}
@@ -101,12 +117,20 @@ const AiCommandModal = ({ isOpen, onClose }) => {
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-inner">
-                  <Sparkles className="w-6 h-6 text-indigo-400" />
+                <div className={`p-3 rounded-2xl border shadow-inner transition-colors duration-300
+                  ${mode === 'invoice' 
+                    ? 'bg-indigo-500/10 border-indigo-500/20' 
+                    : 'bg-emerald-500/10 border-emerald-500/20'}
+                `}>
+                  <Sparkles className={`w-6 h-6 transition-colors duration-300
+                    ${mode === 'invoice' ? 'text-indigo-400' : 'text-emerald-400'}
+                  `} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">BillFlow AI</h2>
-                  <p className="text-sm text-slate-400">Describe your invoice naturally...</p>
+                  <p className="text-sm text-slate-400">
+                    {mode === 'invoice' ? 'Describe your invoice naturally...' : 'Describe your quotation naturally...'}
+                  </p>
                 </div>
               </div>
               <button 
@@ -117,14 +141,44 @@ const AiCommandModal = ({ isOpen, onClose }) => {
               </button>
             </div>
 
+            {/* Mode Switcher */}
+            <div className="flex bg-slate-950/50 p-1 rounded-xl mb-4 border border-white/5">
+              <button
+                onClick={() => setMode('invoice')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                  ${mode === 'invoice' 
+                    ? 'bg-indigo-600 text-white shadow-lg' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                `}
+              >
+                <FileText className="w-4 h-4" /> Invoice
+              </button>
+              <button
+                onClick={() => setMode('quotation')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-300
+                  ${mode === 'quotation' 
+                    ? 'bg-emerald-600 text-white shadow-lg' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                `}
+              >
+                <FileSpreadsheet className="w-4 h-4" /> Quotation
+              </button>
+            </div>
+
             {/* Input Field (TextArea) */}
             <form onSubmit={handleGenerate} className="relative mb-8">
-              <div className="relative bg-slate-800/50 border border-white/10 rounded-2xl shadow-inner focus-within:ring-1 focus-within:ring-indigo-500/50 focus-within:border-indigo-500/50 transition-all overflow-hidden">
+              <div className={`relative bg-slate-800/50 border rounded-2xl shadow-inner focus-within:ring-1 transition-all overflow-hidden
+                 ${mode === 'invoice' 
+                    ? 'border-white/10 focus-within:ring-indigo-500/50 focus-within:border-indigo-500/50' 
+                    : 'border-white/10 focus-within:ring-emerald-500/50 focus-within:border-emerald-500/50'}
+              `}>
                  <textarea
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe the invoice you want to create..."
+                  placeholder={mode === 'invoice' 
+                    ? "Example: Create invoice for Web Design Services $500 for Client Acme Corp..." 
+                    : "Example: Draft a quotation for 5 Security Cameras at 3000 each for TechSolutions..."}
                   className="w-full pl-5 pr-5 pt-5 pb-16 text-lg bg-transparent text-white placeholder:text-slate-500 focus:outline-none resize-none min-h-[140px] leading-relaxed"
                   autoFocus
                   disabled={isLoading}
@@ -136,8 +190,10 @@ const AiCommandModal = ({ isOpen, onClose }) => {
                   disabled={!query.trim() || isLoading}
                   className={`absolute right-3 bottom-3 p-3 rounded-xl flex items-center justify-center transition-all duration-200 
                     ${isLoading 
-                      ? 'bg-transparent text-indigo-400' 
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg active:scale-95'
+                      ? 'bg-transparent text-slate-400' 
+                      : mode === 'invoice'
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg active:scale-95'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg active:scale-95'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isLoading ? (
@@ -156,20 +212,41 @@ const AiCommandModal = ({ isOpen, onClose }) => {
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 pl-1">Examples</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <QuickAction 
-                  onClick={() => setQuery("Create invoice for ClientName: Web Dev Services $5000")}
-                  icon={<MessageSquarePlus className="w-4 h-4" />} 
-                  label="New Invoice" 
-                  desc="Draft from description" 
-                  delay="delay-0"
-                />
-                <QuickAction 
-                   onClick={() => setQuery("Invoice for AWS Server Costs: $150")}
-                  icon={<FileText className="w-4 h-4" />} 
-                  label="Expense Entry" 
-                  desc="Quick expense invoice" 
-                   delay="delay-75"
-                />
+                {mode === 'invoice' ? (
+                  <>
+                    <QuickAction 
+                      onClick={() => setQuery("Create invoice for ClientName: Web Dev Services $5000")}
+                      icon={<MessageSquarePlus className="w-4 h-4" />} 
+                      label="New Invoice" 
+                      desc="Draft from description" 
+                      delay="delay-0"
+                    />
+                    <QuickAction 
+                        onClick={() => setQuery("Invoice for AWS Server Costs: $150")}
+                      icon={<FileText className="w-4 h-4" />} 
+                      label="Expense Entry" 
+                      desc="Quick expense invoice" 
+                        delay="delay-75"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <QuickAction 
+                      onClick={() => setQuery("Quote for Website Redesign: 15000, SEO Optimization: 5000 for Stark Industries")}
+                      icon={<FileSpreadsheet className="w-4 h-4" />} 
+                      label="New Quotation" 
+                      desc="Project Proposal" 
+                      delay="delay-0"
+                    />
+                    <QuickAction 
+                        onClick={() => setQuery("Quotation: 10 Office Chairs at 4500 each for Wayne Ent")}
+                      icon={<FileText className="w-4 h-4" />} 
+                      label="Bulk Supply" 
+                      desc="Product quotation" 
+                        delay="delay-75"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>

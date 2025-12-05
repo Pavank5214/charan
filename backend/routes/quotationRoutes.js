@@ -68,7 +68,7 @@ router.put('/:id', auth, async (req, res) => {
 router.patch('/:id/status', auth, async (req, res) => {
   const { status } = req.body;
 
-  const validStatuses = ['draft', 'sent', 'accepted', 'rejected', 'converted'];
+  const validStatuses = ['draft', 'sent', 'approved', 'accepted', 'rejected', 'converted'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
   }

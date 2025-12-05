@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
 });
 
 const QuotationPDF = ({ quotation }) => {
-  const { company, client, items, totals, gstRate, number, date } = quotation;
+  const { company, client, items, totals, gstRate, number, date, defaults } = quotation;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -241,9 +241,9 @@ const QuotationPDF = ({ quotation }) => {
 
         {/* --- Subject & Intro --- */}
         <View style={styles.subjectSection}>
-          <Text style={[styles.subjectText, { textAlign: 'center' }]}>SUB: QUOTATION FOR ELECTRICAL PANEL / WORKS.</Text>
+          <Text style={[styles.subjectText, { textAlign: 'center' }]}>SUB: {defaults?.defaultSubject || 'QUOTATION FOR ELECTRICAL PANEL / WORKS.'}</Text>
           <Text style={styles.introText}>
-            We thank you for your enquiry and we have pleasure in submitting our offer towards above mentioned to subject which requires your approval.
+            {defaults?.defaultIntro || 'We thank you for your enquiry and we have pleasure in submitting our offer towards above mentioned to subject which requires your approval.'}
           </Text>
         </View>
 
@@ -310,30 +310,41 @@ const QuotationPDF = ({ quotation }) => {
         {/* --- Terms & Conditions --- */}
         <View style={styles.termsContainer}>
           <Text style={styles.termsHeader}>(II) TERMS & CONDITIONS</Text>
-          
-          <View style={styles.termRow}>
-            <Text style={styles.termBullet}>a.</Text>
-            <Text style={styles.termText}>Price Basis : Above prices are inclusive of all taxes & duties</Text>
-          </View>
-          <View style={styles.termRow}>
-            <Text style={styles.termBullet}>b.</Text>
-            <Text style={styles.termText}>Payment : 50% advance.</Text>
-          </View>
-          <View style={styles.termRow}>
-            <Text style={styles.termBullet}>c.</Text>
-            <Text style={styles.termText}>Transport : Extra</Text>
-          </View>
-          <View style={styles.termRow}>
-            <Text style={styles.termBullet}>d.</Text>
-            <Text style={styles.termText}>
-              Taxes & duties : The statutory levies rates given under are as applicable at present, however the rate applicable at the time of dispatch shall be applicable.
-              {'\n'}a) GST @ {gstRate}% Includes
-            </Text>
-          </View>
-          <View style={styles.termRow}>
-            <Text style={styles.termBullet}>e.</Text>
-            <Text style={styles.termText}>Validity: 15 days from today & thereafter subject to our confirmation.</Text>
-          </View>
+
+          {defaults?.terms ? (
+            defaults.terms.split('\n').map((term, index) => (
+              <View key={index} style={styles.termRow}>
+                <Text style={styles.termBullet}>{String.fromCharCode(97 + index)}.</Text>
+                <Text style={styles.termText}>{term.trim()}</Text>
+              </View>
+            ))
+          ) : (
+            <>
+              <View style={styles.termRow}>
+                <Text style={styles.termBullet}>a.</Text>
+                <Text style={styles.termText}>Price Basis : Above prices are inclusive of all taxes & duties</Text>
+              </View>
+              <View style={styles.termRow}>
+                <Text style={styles.termBullet}>b.</Text>
+                <Text style={styles.termText}>Payment : 50% advance.</Text>
+              </View>
+              <View style={styles.termRow}>
+                <Text style={styles.termBullet}>c.</Text>
+                <Text style={styles.termText}>Transport : Extra</Text>
+              </View>
+              <View style={styles.termRow}>
+                <Text style={styles.termBullet}>d.</Text>
+                <Text style={styles.termText}>
+                  Taxes & duties : The statutory levies rates given under are as applicable at present, however the rate applicable at the time of dispatch shall be applicable.
+                  {'\n'}a) GST @ {gstRate}% Includes
+                </Text>
+              </View>
+              <View style={styles.termRow}>
+                <Text style={styles.termBullet}>e.</Text>
+                <Text style={styles.termText}>Validity: 15 days from today & thereafter subject to our confirmation.</Text>
+              </View>
+            </>
+          )}
 
           <Text style={{ marginTop: 10, textAlign: 'center' }}>
              We hope you will find our offer acceptable and we look forward to the pleasure of receiving your valued order, which we assure you will receive our best & prompt attention.

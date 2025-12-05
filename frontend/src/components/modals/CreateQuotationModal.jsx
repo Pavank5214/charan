@@ -30,7 +30,7 @@ const numberToWords = (num) => {
   return convert(Math.round(num)) + ' Only';
 };
 
-const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) => {
+const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit, aiPrefillData }) => {
   // State for Company & Defaults
   const [company, setCompany] = useState({
     name: 'Loading...',
@@ -41,25 +41,23 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
     phone: '',
     gstin: '',
   });
-  
-  const [quotationDefaults, setQuotationDefaults] = useState({
-    prefix: 'SMEC/25-26/QUO',
-    defaultValidityDays: '15',
-    defaultSubject: 'SUB: QUOTATION FOR ELECTRICAL PANEL / WORKS.',
-    defaultIntro: 'We thank you for your enquiry...',
-    terms: ''
-  });
+
+  const [quotationDefaults, setQuotationDefaults] = useState({});
 
   // Form State
+  const [clients, setClients] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [showAddClient, setShowAddClient] = useState(false);
   const [client, setClient] = useState({
-    name: '', address: '', city: '', mobile: '', email: ''
+    name: '', address: '', city: '', mobile: '', email: '', gstin: '', state: 'KARNATAKA', pincode: '', accountNumber: ''
   });
   const [quotationNumber, setQuotationNumber] = useState('');
   const [quotationDate, setQuotationDate] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [gstRate, setGstRate] = useState(18);
+  const [status, setStatus] = useState('draft');
   const [items, setItems] = useState([]);
-  
+
   // Loading States
   const [pdfBlob, setPdfBlob] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -67,40 +65,63 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
   const [saveError, setSaveError] = useState('');
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
-  // 1. Fetch Settings on Mount (or when modal opens)
+  // 1. Fetch Settings and Clients on Mount (or when modal opens)
   useEffect(() => {
     if (isOpen) {
-      fetchSettings();
+      fetchData();
     }
   }, [isOpen]);
 
-  const fetchSettings = async () => {
+  const fetchData = async () => {
     setIsLoadingSettings(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/settings/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      
-      if (data.company) {
-        // Map API response to Component State
-        setCompany({
-          name: data.company.name || 'Your Company Name',
-          subTitle: '(Mfg All Type Power Switchboards, Control panels & bus ducts)', // Optional: Add this to backend if dynamic
-          address: data.company.address || '',
-          city: data.company.city ? `${data.company.city} - ${data.company.pincode || ''}` : '',
-          email: data.company.email || '',
-          phone: data.company.phone || '',
-          gstin: data.company.gstin || '',
-        });
 
-        if (data.company.quotationSettings) {
-          setQuotationDefaults(data.company.quotationSettings);
+      // Fetch Company Settings
+      let companyData = {};
+      let clientsList = [];
+
+      try {
+        const res = await fetch(`${API_BASE}/settings/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          companyData = data.company || {};
         }
+
+        const clientsRes = await fetch(`${API_BASE}/clients`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (clientsRes.ok) {
+          const data = await clientsRes.json();
+          clientsList = Array.isArray(data) ? data : [];
+        }
+      } catch (e) {
+        console.warn("API Fetch failed");
       }
+
+      setCompany({
+        name: companyData.name || '',
+        subTitle: companyData.subTitle || '',
+        address: companyData.address || '',
+        city: companyData.city ? `${companyData.city} - ${companyData.pincode || ''}` : '',
+        email: companyData.email || '',
+        phone: companyData.phone || '',
+        gstin: companyData.gstin || '',
+      });
+
+      setQuotationDefaults({
+        prefix: companyData.quotationSettings?.prefix || 'QUO',
+        defaultValidityDays: companyData.quotationSettings?.defaultValidityDays || 30,
+        defaultSubject: companyData.quotationSettings?.defaultSubject || 'Quotation for Services',
+        defaultIntro: companyData.quotationSettings?.defaultIntro || 'Thank you for considering our services. We are pleased to provide the following quotation.',
+        terms: companyData.quotationSettings?.terms || '1. Payment terms: 50% advance, 50% on completion.\n2. Validity: 30 days from date of quotation.\n3. All prices are exclusive of GST.'
+      });
+
+      setClients(clientsList);
     } catch (err) {
-      console.error("Failed to load settings", err);
+      console.error("Failed to load data", err);
     } finally {
       setIsLoadingSettings(false);
     }
@@ -116,29 +137,71 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
         setQuotationDate(quotationToEdit.quotationDate ? new Date(quotationToEdit.quotationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
         setValidUntil(quotationToEdit.validUntil ? new Date(quotationToEdit.validUntil).toISOString().split('T')[0] : '');
         setGstRate(quotationToEdit.gstRate || 18);
+        setStatus(quotationToEdit.status || 'draft');
         setItems(quotationToEdit.items || [{ description: '', make: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
+      } else if (aiPrefillData) {
+         // AI Prefill Logic
+         setClient({
+            name: aiPrefillData.client?.name || '',
+            address: aiPrefillData.client?.address || '',
+            city: aiPrefillData.client?.city || '',
+            mobile: aiPrefillData.client?.mobile || '',
+            email: aiPrefillData.client?.email || '',
+            gstin: aiPrefillData.client?.gstin || '',
+            state: aiPrefillData.client?.state || 'KARNATAKA',
+            pincode: '',
+            accountNumber: ''
+         });
+
+         // Items
+         if (aiPrefillData.items && aiPrefillData.items.length > 0) {
+            setItems(aiPrefillData.items.map(it => ({
+                description: it.description || '',
+                make: it.make || '',
+                qty: it.qty || 1,
+                unit: it.unit || 'NOS',
+                rate: it.rate || 0,
+                discount: it.discount || 0
+            })));
+         } else {
+            setItems([{ description: '', make: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
+         }
+
+         // Generate new number
+         const rand = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');
+         setQuotationNumber(`${quotationDefaults.prefix || 'QUO'} - ${rand}`);
+
+         // Dates
+         const today = new Date();
+         setQuotationDate(today.toISOString().split('T')[0]);
+         const validDate = new Date();
+         const days = parseInt(quotationDefaults.defaultValidityDays) || 15;
+         validDate.setDate(today.getDate() + days);
+         setValidUntil(validDate.toISOString().split('T')[0]);
+
+         setGstRate(18); // Default
       } else {
         // Create Mode (Use Defaults)
         setClient({ name: '', address: '', city: '', mobile: '', email: '' });
-        
+
         // Generate Number using Prefix
         const rand = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');
         setQuotationNumber(`${quotationDefaults.prefix || 'QUO'} - ${rand}`);
-        
+
         // Set Dates
         const today = new Date();
         setQuotationDate(today.toISOString().split('T')[0]);
-        
+
         const validDate = new Date();
         const days = parseInt(quotationDefaults.defaultValidityDays) || 15;
         validDate.setDate(today.getDate() + days);
         setValidUntil(validDate.toISOString().split('T')[0]);
-        
+
         setGstRate(18);
         setItems([{ description: '', make: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
       }
     }
-  }, [isOpen, isLoadingSettings, quotationToEdit]);
+  }, [isOpen, isLoadingSettings, quotationToEdit, aiPrefillData]);
 
   // Calculations
   const { subtotal, gst, total } = useMemo(() => {
@@ -384,10 +447,7 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
         subtotal: Number(subtotal),
         gst: Number(gst),
         total: Number(total),
-        status: quotationToEdit ? quotationToEdit.status : 'draft',
-        // Optional: Save the specific terms used for this quotation if the backend model supports it
-        // subject: quotationDefaults.defaultSubject,
-        // terms: quotationDefaults.terms
+        status,
       };
 
       const token = localStorage.getItem('token');
@@ -476,7 +536,7 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Quotation No.</label>
-                    <input value={quotationNumber} readOnly className="w-full px-3 py-2 border border-indigo-200 bg-indigo-50 rounded-lg font-mono text-sm font-bold text-indigo-700" />
+                    <input value={quotationNumber} onChange={e => setQuotationNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm font-bold text-indigo-700" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -492,6 +552,17 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
                     <label className="block text-xs font-medium text-gray-500 mb-1">GST Rate %</label>
                     <input type="number" value={gstRate} onChange={e => setGstRate(Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                      <option value="draft">Draft</option>
+                      <option value="sent">Sent</option>
+                      <option value="approved">Approved</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="converted">Converted</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -504,10 +575,66 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit }) =
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <User className="w-4 h-4" /> To Client
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input placeholder="Client Name *" value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                  <input placeholder="City / Location" value={client.city} onChange={e => setClient({ ...client, city: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                  <input placeholder="Full Address" value={client.address} onChange={e => setClient({ ...client, address: e.target.value })} className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <div className="space-y-4">
+                  {/* Client Selection */}
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => {
+                        const clientId = e.target.value;
+                        setSelectedClientId(clientId);
+                        if (clientId) {
+                          const selectedClient = clients.find(c => c._id === clientId);
+                          if (selectedClient) {
+                            setClient({
+                              name: selectedClient.name || '',
+                              address: selectedClient.address || '',
+                              city: selectedClient.city || '',
+                              mobile: selectedClient.mobile || '',
+                              email: selectedClient.email || '',
+                              gstin: selectedClient.gstin || '',
+                              state: selectedClient.state || 'KARNATAKA',
+                              pincode: selectedClient.pincode || '',
+                              accountNumber: selectedClient.accountNumber || ''
+                            });
+                          }
+                        } else {
+                          setClient({
+                            name: '', address: '', city: '', mobile: '', email: '', gstin: '', state: 'KARNATAKA', pincode: '', accountNumber: ''
+                          });
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="">Select Existing Client</option>
+                      {clients.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => setShowAddClient(!showAddClient)}
+                      className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 text-sm font-medium"
+                    >
+                      {showAddClient ? 'Cancel' : '+ New'}
+                    </button>
+                  </div>
+
+                  {/* Client Form */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input placeholder="Client Name *" value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <input placeholder="City / Location" value={client.city} onChange={e => setClient({ ...client, city: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <input placeholder="Full Address" value={client.address} onChange={e => setClient({ ...client, address: e.target.value })} className="md:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    {showAddClient && (
+                      <>
+                        <input placeholder="Mobile" value={client.mobile} onChange={e => setClient({ ...client, mobile: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <input placeholder="Email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <input placeholder="GSTIN" value={client.gstin} onChange={e => setClient({ ...client, gstin: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <input placeholder="State" value={client.state} onChange={e => setClient({ ...client, state: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <input placeholder="Pincode" value={client.pincode} onChange={e => setClient({ ...client, pincode: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        <input placeholder="Account Number" value={client.accountNumber} onChange={e => setClient({ ...client, accountNumber: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
