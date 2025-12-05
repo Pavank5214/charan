@@ -45,7 +45,7 @@ const AuthRoute = ({ children }) => {
     );
   }
 
-  return user ? <Navigate to="/" /> : children;
+  return user ? <Navigate to="/dashboard" /> : children;
 };
 
 function App() {
