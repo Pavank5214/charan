@@ -380,7 +380,7 @@ const Quotations = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-20 md:pb-12">
+    <div className="min-h-screen bg-slate-200 pb-20 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-8">
 
         {/* Header */}
@@ -453,7 +453,7 @@ const Quotations = () => {
           
               {/* DESKTOP TABLE */}
               <div className="hidden md:block overflow-x-auto min-h-[400px]">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 border-radius">
                   <thead className="bg-gray-50/50">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quotation Details</th>

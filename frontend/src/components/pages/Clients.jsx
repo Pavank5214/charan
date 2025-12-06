@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, Edit, Trash2, Building2, Phone, Mail, MapPin, 
-  Filter, ChevronDown, UserCheck, X, Save
+import {
+  Plus, Search, Edit, Trash2, Phone, Mail, MapPin,
+  Filter, ChevronDown, UserCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import AddClientModal from '../modals/AddClientModal';
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/clients`;
 
@@ -15,11 +16,6 @@ const ClientsPage = () => {
   const [filterState, setFilterState] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-
-  // Form state
-  const [form, setForm] = useState({
-    name: '', gstin: '', address: '', mobile: '', email: '', state: 'KARNATAKA', pincode: '', remarks: ''
-  });
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
@@ -54,45 +50,7 @@ const ClientsPage = () => {
     fetchClients();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const token = getToken();
-    const url = editingClient ? `${API_BASE}/${editingClient._id}` : API_BASE;
-    const method = editingClient ? 'PUT' : 'POST';
-    
-    // Toast Loading State
-    const loadingToast = toast.loading(editingClient ? 'Updating client...' : 'Adding new client...');
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify(form)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to save client');
-      }
-
-      // Update UI with real data from server
-      if (editingClient) {
-        setClients(prev => prev.map(c => c._id === data._id ? data : c));
-        toast.success('Client updated successfully', { id: loadingToast });
-      } else {
-        setClients(prev => [data, ...prev]);
-        toast.success('Client added successfully', { id: loadingToast });
-      }
-
-      handleCloseModal();
-    } catch (err) {
-      toast.error(err.message || "Operation failed", { id: loadingToast });
-    }
-  };
 
   // --- Custom Delete Confirmation Toast ---
   const handleDelete = (id) => {
@@ -163,23 +121,21 @@ const ClientsPage = () => {
 
   const handleEdit = (client) => {
     setEditingClient(client);
-    setForm({
-      name: client.name || '',
-      gstin: client.gstin || '',
-      address: client.address || '',
-      mobile: client.mobile || '',
-      email: client.email || '',
-      state: client.state || 'KARNATAKA',
-      pincode: client.pincode || '',
-      remarks: client.remarks || ''
-    });
     setShowAddModal(true);
   };
 
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingClient(null);
-    setForm({ name: '', gstin: '', address: '', mobile: '', email: '', state: 'KARNATAKA', pincode: '', remarks: '' });
+  };
+
+  const handleSave = (savedClient) => {
+    if (editingClient) {
+      setClients(prev => prev.map(c => c._id === savedClient._id ? savedClient : c));
+    } else {
+      setClients(prev => [savedClient, ...prev]);
+    }
+    handleCloseModal();
   };
 
   const filteredClients = clients.filter(c => 
@@ -192,7 +148,7 @@ const ClientsPage = () => {
   const uniqueStates = [...new Set(clients.map(c => c.state).filter(Boolean))];
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-20 md:pb-12">
+    <div className="min-h-screen bg-slate-200 pb-20 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-8">
 
         {/* Header */}
@@ -399,96 +355,13 @@ const ClientsPage = () => {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-indigo-600" />
-                {editingClient ? 'Edit Client' : 'Add New Client'}
-              </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Name *</label>
-                  <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-                  <input value={form.gstin} onChange={e => setForm({...form, gstin: e.target.value.toUpperCase()})}
-                    placeholder="29ABCDE1234F1Z5"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <textarea rows={2} value={form.address} onChange={e => setForm({...form, address: e.target.value})}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
-                  <input required type="tel" value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <select value={form.state} onChange={e => setForm({...form, state: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none bg-white">
-                    <option>KARNATAKA</option>
-                    <option>TAMIL NADU</option>
-                    <option>MAHARASHTRA</option>
-                    <option>ANDHRA PRADESH</option>
-                    <option>TELANGANA</option>
-                    <option>KERALA</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
-                  <input value={form.pincode} onChange={e => setForm({...form, pincode: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-                <input value={form.remarks} onChange={e => setForm({...form, remarks: e.target.value})}
-                  placeholder="Additional notes..."
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
-              </div>
-
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCloseModal}
-                  className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-                  Cancel
-                </button>
-                <button type="submit"
-                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center font-medium">
-                  <Save className="w-4 h-4 mr-2" />
-                  {editingClient ? 'Update Client' : 'Save Client'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddClientModal
+        isOpen={showAddModal}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        editingClient={editingClient}
+        apiBase={API_BASE}
+      />
     </div>
   );
 };

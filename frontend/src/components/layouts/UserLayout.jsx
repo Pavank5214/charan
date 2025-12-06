@@ -8,7 +8,7 @@ const UserLayout = () => {
   const [isAiOpen, setIsAiOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 font-sans">
+    <div className="flex min-h-screen bg-slate-200 font-sans">
       <SideBar />
 
       <main className="flex-1 min-h-screen transition-all duration-300 lg:ml-72 peer-checked:lg:ml-20 relative">

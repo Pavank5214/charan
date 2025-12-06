@@ -11,7 +11,7 @@ const Home = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-slate-200 font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
       
       {/* --- Hero Section --- */}
       <section className="relative pt-24 pb-32 overflow-hidden">
@@ -103,7 +103,7 @@ const Home = () => {
       </section>
 
       {/* --- Workflow Section (Replacing Fake Stats) --- */}
-      <section className="py-24 bg-white border-b border-slate-100">
+      <section className="py-24 bg-slate-200">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2">Workflow</h2>
@@ -148,7 +148,7 @@ const Home = () => {
       </section>
 
       {/* --- Features Grid --- */}
-      <section id="features" className="py-24 bg-slate-50">
+      <section id="features" className="py-24 bg-slate-200">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Everything you need</h2>
@@ -224,7 +224,7 @@ const Home = () => {
       </section>
 
       {/* --- Footer --- */}
-      <footer className="bg-white py-12 border-t border-slate-100">
+      <footer className="bg-white py-12 border-t border-slate-100 ">
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-slate-500 text-sm">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">B</div>

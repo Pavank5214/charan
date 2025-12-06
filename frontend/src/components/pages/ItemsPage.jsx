@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, Edit, Trash2, Package, Tag, FileText, 
-  IndianRupee, Filter, ChevronDown, Box, Save, Layers, Loader2, X
+import {
+  Plus, Search, Edit, Trash2, Package, Box
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import AddItemModal from '../modals/AddItemModal';
 
 const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/items`;
 
@@ -14,12 +14,6 @@ const ItemsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [saveLoading, setSaveLoading] = useState(false);
-
-  // Form state matches the Mongoose model structure
-  const [form, setForm] = useState({
-    name: '', description: '', hsn: '', unit: 'NOS', price: ''
-  });
 
   // Fetch Items (GET /api/items)
   const fetchItems = async () => {
@@ -50,50 +44,7 @@ const ItemsPage = () => {
     fetchItems();
   }, []);
 
-  // Handle Form Submit (POST /api/items or PUT /api/items/:id)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaveLoading(true);
-    
-    // Toast Loading State
-    const loadingToast = toast.loading(editingItem ? 'Updating item...' : 'Saving new item...');
-    
-    const token = localStorage.getItem('token');
-    const url = editingItem ? `${API_BASE}/${editingItem._id}` : API_BASE;
-    const method = editingItem ? 'PUT' : 'POST';
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(form)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to save item');
-      }
-
-      // Update UI state
-      if (editingItem) {
-        setItems(prev => prev.map(i => i._id === data._id ? data : i));
-        toast.success('Item updated successfully', { id: loadingToast });
-      } else {
-        setItems(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-        toast.success('Item added successfully', { id: loadingToast });
-      }
-
-      handleCloseModal();
-    } catch (err) {
-      toast.error(err.message || "Operation failed", { id: loadingToast });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
 
   // --- Custom Delete Confirmation Toast ---
   const handleDelete = (id) => {
@@ -164,20 +115,20 @@ const ItemsPage = () => {
 
   const handleEdit = (item) => {
     setEditingItem(item);
-    setForm({
-      name: item.name || '',
-      description: item.description || '',
-      hsn: item.hsn || '',
-      unit: item.unit || 'NOS',
-      price: item.price || ''
-    });
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingItem(null);
-    setForm({ name: '', description: '', hsn: '', unit: 'NOS', price: '' });
+  };
+
+  const handleSave = (savedItem) => {
+    if (editingItem) {
+      setItems(prev => prev.map(i => i._id === savedItem._id ? savedItem : i));
+    } else {
+      setItems(prev => [...prev, savedItem].sort((a, b) => a.name.localeCompare(b.name)));
+    }
   };
 
   const filteredItems = items.filter(i => 
@@ -186,7 +137,7 @@ const ItemsPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-20 md:pb-12">
+    <div className="min-h-screen bg-slate-200 pb-20 md:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-8">
 
         {/* Header */}
@@ -329,75 +280,13 @@ const ItemsPage = () => {
       </div>
 
       {/* Add/Edit Item Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-600" />
-                {editingItem ? 'Edit Item' : 'Add New Item'}
-              </h2>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
-                <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
-                  <input required type="number" min="0" value={form.price} onChange={e => setForm({...form, price: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                  <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none bg-white">
-                    <option value="NOS">NOS</option>
-                    <option value="PCS">PCS</option>
-                    <option value="KG">KG</option>
-                    <option value="MTR">MTR</option>
-                    <option value="SET">SET</option>
-                    <option value="BOX">BOX</option>
-                    <option value="SQFT">SQFT</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HSN / SAC Code</label>
-                <input value={form.hsn} onChange={e => setForm({...form, hsn: e.target.value})}
-                  placeholder="e.g. 9983"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none transition" />
-              </div>
-
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCloseModal}
-                  className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saveLoading}
-                  className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center font-medium disabled:opacity-70">
-                  {saveLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                  {editingItem ? 'Update Item' : 'Save Item'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddItemModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        editingItem={editingItem}
+        apiBase={API_BASE}
+      />
     </div>
   );
 };

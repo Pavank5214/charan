@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 const SideBar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isUserExpanded, setIsUserExpanded] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -241,9 +242,9 @@ const SideBar = () => {
         {/* 3. User Profile Section (Glass Card Effect) */}
         <div className="p-3 shrink-0">
           <div className={`relative rounded-xl bg-slate-800/40 border border-slate-700/50 p-3 transition-all duration-300 ${isCollapsed && !isMobileOpen ? 'bg-transparent border-0 p-0' : ''}`}>
-            
+
             <div className={`flex items-center gap-3 ${isCollapsed && !isMobileOpen ? 'flex-col justify-center' : ''}`}>
-              
+
               {/* Avatar with Status Dot */}
               <div className="relative shrink-0">
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white font-semibold shadow-inner">
@@ -254,8 +255,37 @@ const SideBar = () => {
 
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex-1 min-w-0 overflow-hidden">
-                  <p className="text-sm font-semibold text-slate-200 truncate">{user?.name || 'User'}</p>
-                  <p className="text-xs text-slate-500 truncate">{user?.email || 'user@billflow.com'}</p>
+                  <button
+                    onClick={() => setIsUserExpanded(!isUserExpanded)}
+                    className="w-full text-left hover:bg-slate-700/30 rounded-md p-1 -m-1 transition-colors"
+                  >
+                    <p className="text-sm font-semibold text-slate-200 truncate">{user?.name || 'User'}</p>
+                    <p className="text-xs text-slate-500 truncate">{user?.email || 'user@billflow.com'}</p>
+                  </button>
+
+                  {/* Expanded User Details */}
+                  {isUserExpanded && (
+                    <div className="mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                      {user?.mobile && (
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <span className="w-3 h-3 rounded-full bg-slate-600 flex items-center justify-center text-[8px]">📱</span>
+                          <span>{user.mobile}</span>
+                        </div>
+                      )}
+                      {user?.company && (
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <span className="w-3 h-3 rounded-full bg-slate-600 flex items-center justify-center text-[8px]">🏢</span>
+                          <span>{user.company}</span>
+                        </div>
+                      )}
+                      {user?.location && (
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <span className="w-3 h-3 rounded-full bg-slate-600 flex items-center justify-center text-[8px]">📍</span>
+                          <span>{user.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

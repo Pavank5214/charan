@@ -1,7 +1,11 @@
-# Dashboard Fixes TODO
+- [ ] Create BusinessSettingsTab.jsx component
+- [ ] Create InvoiceSettingsTab.jsx component
+- [ ] Create QuotationSettingsTab.jsx component
+- [ ] Update main Settings.jsx to use the separated components
+=======
+# Settings Refactoring TODO
 
-- [x] Update Dashboard.jsx to import real useAuth from AuthContext
-- [x] Change API_BASE to use environment variable
-- [x] Remove mock quotation generation on API failure
-- [x] Ensure proper error handling without fake data fallbacks
-- [x] Verify calculations and data processing logic
+- [x] Create BusinessSettingsTab.jsx component
+- [x] Create InvoiceSettingsTab.jsx component
+- [x] Create QuotationSettingsTab.jsx component
+- [x] Update main Settings.jsx to use the separated components
