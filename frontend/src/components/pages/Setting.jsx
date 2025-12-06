@@ -253,7 +253,7 @@ const Settings = () => {
 
       {/* 3. Floating Action Bar (Mobile & Desktop) */}
       {isEditing && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-20 duration-300">
+        <div className="fixed bottom-2 left-0 right-25 z-50 p-4 animate-in slide-in-from-bottom-20 duration-300">
           <div className="max-w-3xl mx-auto bg-gray-900/90 backdrop-blur-md text-white p-2 pl-6 pr-2 rounded-2xl shadow-2xl flex items-center justify-between gap-4 border border-white/10">
             <span className="text-sm font-medium text-gray-300 hidden sm:block">
               You have unsaved changes
