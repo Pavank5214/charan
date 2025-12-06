@@ -206,8 +206,7 @@ const BOMList = () => {
     setGeneratingId(bom._id);
     setTimeout(() => {
       const url = generateBlob(bom);
-      setBlobUrl(url);
-      setPreviewBOM(bom);
+      window.open(url, '_blank');
       setGeneratingId(null);
     }, 300);
   };
@@ -260,7 +259,7 @@ const BOMList = () => {
 
   return (
     <div className="min-h-screen bg-slate-200 pb-20 md:pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-8">
+      <div className="max-w-7xl mx-auto px-4sm:px-6 lg:px-8 pt-6 md:pt-8">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 md:mb-8 gap-4">

@@ -696,14 +696,41 @@ const CreateQuotationModal = ({ isOpen, onClose, onCreated, quotationToEdit, aiP
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3 z-10">
-          <button onClick={onClose} className="px-5 py-2.5 text-sm text-gray-700 font-medium hover:bg-gray-50 rounded-xl border border-gray-200">Cancel</button>
-          <button onClick={generatePDF} disabled={pdfLoading} className="px-5 py-2.5 text-sm bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 flex items-center">
-            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />} Preview PDF
+        <div className="p-4 sm:p-5 border-t border-gray-100 bg-white flex flex-col-reverse sm:flex-row sm:justify-end gap-3 z-10">
+          <button
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-3 sm:px-6 sm:py-2.5 text-sm sm:text-base text-gray-700 font-medium hover:bg-gray-50 rounded-xl border border-gray-200 transition-colors"
+          >
+            Cancel
           </button>
-          {pdfBlob && <a href={pdfBlob} download={`${quotationNumber}.html`} className="hidden" id="pdf-download-link">Download</a>}
-          <button onClick={saveQuotation} disabled={saveLoading} className="px-6 py-2.5 text-sm bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 flex items-center">
-            {saveLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />} Save Quotation
+
+          <button
+            onClick={generatePDF}
+            disabled={pdfLoading}
+            className="w-full sm:w-auto px-4 py-3 sm:px-6 sm:py-2.5 text-sm sm:text-base bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center disabled:opacity-50"
+          >
+            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+            Preview PDF
+          </button>
+
+          {pdfBlob && (
+            <a
+              href={pdfBlob}
+              download={`${quotationNumber.replace(/[\/\\]/g, '-')}.html`}
+              className="hidden"
+              id="pdf-download-link"
+            >
+              Download
+            </a>
+          )}
+
+          <button
+            onClick={saveQuotation}
+            disabled={saveLoading}
+            className="w-full sm:w-auto px-4 py-3 sm:px-8 sm:py-2.5 text-sm sm:text-base bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center justify-center disabled:opacity-50"
+          >
+            {saveLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            {quotationToEdit ? 'Update Quotation' : 'Save Quotation'}
           </button>
         </div>
 

@@ -67,8 +67,13 @@ const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
                    </div>
                    <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                       <div>
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-1">GSTIN</p>
-                        <p className="font-mono text-lg tracking-wide">{business.gstin || '----------------'}</p>
+                      <p className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-500 font-bold">
+  <span>GSTIN</span>
+  <span className="font-mono text-lg tracking-wide text-gray-200">
+    {business.gstin || '----------------'}
+  </span>
+</p>
+
                       </div>
                       <Globe className="w-16 h-16 text-white/5 absolute -bottom-4 -right-4" />
                    </div>

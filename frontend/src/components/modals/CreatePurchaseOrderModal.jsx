@@ -205,11 +205,11 @@ const CreatePurchaseOrderModal = ({ isOpen, onClose, onSave, orderToEdit, apiBas
           </form>
         </div>
 
-        <div className="p-6 border-t bg-white rounded-b-2xl flex justify-end gap-3">
-            <button onClick={onClose} className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl border border-gray-200 transition">Cancel</button>
+        <div className="p-6 border-t bg-white rounded-b-2xl flex flex-col items-center gap-3">
             <button type="submit" form="po-form" disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 flex items-center gap-2 transition shadow-lg shadow-indigo-200 disabled:opacity-70">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>} Save Order
             </button>
+            <button onClick={onClose} className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl border border-gray-200 transition">Cancel</button>
         </div>
       </div>
     </div>
