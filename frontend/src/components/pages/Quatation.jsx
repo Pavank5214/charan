@@ -325,7 +325,7 @@ const Quotations = () => {
 
   const handleView = async (q) => {
     const url = await generatePDFBlob(q);
-    if (url) { setPreviewQuotation(q); setPdfBlobUrl(url); }
+    if (url) { window.open(url, '_blank'); }
   };
 
   const handleDownload = async (q) => {

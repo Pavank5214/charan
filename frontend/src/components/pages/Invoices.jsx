@@ -221,7 +221,7 @@ const Invoices = () => {
     } catch (err) { console.error(err); toast.error('PDF error'); return null; } finally { setPdfLoading(false); }
   };
 
-  const handleView = async (inv) => { const url = await generatePDFBlob(inv); if (url) { setPreviewInvoice(inv); setPdfBlobUrl(url); } };
+  const handleView = async (inv) => { const url = await generatePDFBlob(inv); if (url) { window.open(url, '_blank'); } };
   const handleDownload = async (inv) => { const url = await generatePDFBlob(inv); if (url) { const a = document.createElement('a'); a.href = url; a.download = `${inv.invoiceNumber}.pdf`; a.click(); URL.revokeObjectURL(url); } };
   const closePreview = () => { if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl); setPdfBlobUrl(null); setPreviewInvoice(null); };
 
@@ -287,80 +287,87 @@ const Invoices = () => {
         </div>
 
         {/* List */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* List */}
+        <div className="mt-6"> {/* Removed the outer bg-white wrapper here */}
+          
           {loading ? (
-            <div className="p-12 text-center">Loading...</div>
+            <div className="p-12 text-center text-gray-500">Loading...</div>
           ) : filteredInvoices.length === 0 ? (
-            <div className="p-20 text-center text-gray-500"><FileText className="w-16 h-16 mx-auto mb-4" /><p>No invoices found</p></div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-20 text-center text-gray-500">
+              <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p>No invoices found</p>
+            </div>
           ) : (
             <>
-              {/* DESKTOP TABLE */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice Details</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {filteredInvoices.map((inv) => (
-                      <tr key={inv._id} className="hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">#</div>
-                            <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900">{inv.invoiceNumber}</div>
-                              <div className="text-xs text-gray-500">GST Invoice</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{inv.clientId?.name || inv.client?.name}</div>
-                          <div className="text-xs text-gray-500">{inv.clientId?.email || inv.client?.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(inv.invoiceDate).toLocaleDateString('en-IN')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="relative inline-block text-left">
-                            <select
-                              value={inv.status || 'draft'}
-                              onChange={(e) => handleStatusChange(inv._id, e.target.value, inv.status)}
-                              className={`appearance-none pl-8 pr-8 py-1.5 rounded-full text-xs font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all ${getStatusStyle(inv.status)}`}
-                            >
-                              <option value="draft">Draft</option>
-                              <option value="sent">Sent</option>
-                              <option value="paid">Paid</option>
-                              <option value="overdue">Overdue</option>
-                            </select>
-                            <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">{getStatusIcon(inv.status)}</div>
-                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-50"><ChevronDown className="w-3 h-3" /></div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
-                          ₹{Number(inv.total || 0).toLocaleString('en-IN')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleView(inv)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye className="w-4 h-4" /></button>
-                            <button onClick={() => handleDownload(inv)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"><Download className="w-4 h-4" /></button>
-                            <button onClick={() => handleEdit(inv)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></button>
-                            <button onClick={() => handleDelete(inv._id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                        </td>
+              {/* --- DESKTOP VIEW (Table inside a White Box) --- */}
+              <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Invoice Details</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {filteredInvoices.map((inv) => (
+                        <tr key={inv._id} className="hover:bg-gray-50/80 transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">#</div>
+                              <div className="ml-4">
+                                <div className="text-sm font-semibold text-gray-900">{inv.invoiceNumber}</div>
+                                <div className="text-xs text-gray-500">GST Invoice</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{inv.clientId?.name || inv.client?.name}</div>
+                            <div className="text-xs text-gray-500">{inv.clientId?.email || inv.client?.email}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(inv.invoiceDate).toLocaleDateString('en-IN')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="relative inline-block text-left">
+                              <select
+                                value={inv.status || 'draft'}
+                                onChange={(e) => handleStatusChange(inv._id, e.target.value, inv.status)}
+                                className={`appearance-none pl-8 pr-8 py-1.5 rounded-full text-xs font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-all ${getStatusStyle(inv.status)}`}
+                              >
+                                <option value="draft">Draft</option>
+                                <option value="sent">Sent</option>
+                                <option value="paid">Paid</option>
+                                <option value="overdue">Overdue</option>
+                              </select>
+                              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">{getStatusIcon(inv.status)}</div>
+                              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-50"><ChevronDown className="w-3 h-3" /></div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                            ₹{Number(inv.total || 0).toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleView(inv)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye className="w-4 h-4" /></button>
+                              <button onClick={() => handleDownload(inv)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"><Download className="w-4 h-4" /></button>
+                              <button onClick={() => handleEdit(inv)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleDelete(inv._id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              {/* MOBILE VIEW */}
-              <div className="md:hidden space-y-4  bg-slate-200 ">
+              {/* --- MOBILE VIEW (Independent Cards) --- */}
+              <div className="md:hidden space-y-4">
                 {filteredInvoices.map((inv) => (
                   <div key={inv._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <div className="flex justify-between items-start mb-3">
@@ -384,8 +391,14 @@ const Invoices = () => {
                       </div>
                     </div>
                     <div className="flex justify-between items-center mb-4">
-                      <div><p className="text-xs text-gray-500 uppercase tracking-wide">Client</p><p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{inv.clientId?.name || inv.client?.name}</p></div>
-                      <div className="text-right"><p className="text-xs text-gray-500 uppercase tracking-wide">Amount</p><p className="text-lg font-bold text-gray-900">₹{Number(inv.total || 0).toLocaleString('en-IN')}</p></div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Client</p>
+                        <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{inv.clientId?.name || inv.client?.name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Amount</p>
+                        <p className="text-lg font-bold text-gray-900">₹{Number(inv.total || 0).toLocaleString('en-IN')}</p>
+                      </div>
                     </div>
                     <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-100">
                       <button onClick={() => handleView(inv)} className="flex flex-col items-center justify-center py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-xs"><Eye className="w-5 h-5 mb-1" /> Preview</button>

@@ -18,7 +18,7 @@ const UserLayout = () => {
       </main>
 
       {/* --- FLOATING AI BUTTON (Enhanced with Deep Breathing) --- */}
-      <div className="fixed bottom-8 right-8 z-50">
+      <div className="fixed bottom-20 right-8 z-50">
         <button
           onClick={() => setIsAiOpen(true)}
           className="group relative flex items-center justify-center p-1 rounded-full transition-all duration-500 hover:scale-105 active:scale-95"
