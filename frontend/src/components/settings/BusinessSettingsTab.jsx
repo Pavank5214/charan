@@ -39,7 +39,7 @@ const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Live Preview</h3>
           
           {/* The Card */}
-          <div className="aspect-[1.58/1] w-full rounded-2xl bg-gradient-to-br from-gray-900 via-slate-800 to-slate-900 p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group">
+          <div className="aspect-[1.58/1] w-full h-62 rounded-2xl bg-gradient-to-br from-gray-900 via-slate-800 to-slate-900 p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group">
              
              {/* Abstract Background Shapes */}
              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/20 transition-colors duration-700"></div>
