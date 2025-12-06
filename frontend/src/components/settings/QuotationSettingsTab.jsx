@@ -1,27 +1,33 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ScrollText, Calendar, Hash, PenTool, LayoutTemplate } from 'lucide-react';
+
+// Custom Input Component
+const Input = React.memo(({ label, value, onChange, placeholder, icon: Icon, type="text" }) => (
+  <div className="group">
+    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
+    <div className="relative">
+      {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
+      <input
+        type={type}
+        value={value || ''}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
+      />
+    </div>
+  </div>
+));
 
 const QuotationSettingsTab = ({
   quotationDefaults = {},
   setQuotationDefaults,
   isEditing
 }) => {
-  
-  const Input = ({ label, value, onChange, placeholder, icon: Icon, type="text" }) => (
-    <div className="group">
-      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
-        <input
-          type={type}
-          value={value || ''}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
-        />
-      </div>
-    </div>
-  );
+
+  const handlePrefixChange = useCallback((e) => setQuotationDefaults(prev => ({ ...prev, prefix: e.target.value })), [setQuotationDefaults]);
+  const handleValidityDaysChange = useCallback((e) => setQuotationDefaults(prev => ({ ...prev, defaultValidityDays: e.target.value })), [setQuotationDefaults]);
+  const handleDefaultSubjectChange = useCallback((e) => setQuotationDefaults(prev => ({ ...prev, defaultSubject: e.target.value })), [setQuotationDefaults]);
+  const handleTermsChange = useCallback((e) => setQuotationDefaults(prev => ({ ...prev, terms: e.target.value })), [setQuotationDefaults]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -93,17 +99,17 @@ const QuotationSettingsTab = ({
           
           {isEditing ? (
              <div className="space-y-5">
-               <Input 
-                  label="Default Subject" 
-                  value={quotationDefaults.defaultSubject} 
-                  onChange={(e) => setQuotationDefaults({...quotationDefaults, defaultSubject: e.target.value})} 
-                  placeholder="Quotation for..." 
+               <Input
+                  label="Default Subject"
+                  value={quotationDefaults.defaultSubject}
+                  onChange={handleDefaultSubjectChange}
+                  placeholder="Quotation for..."
                />
                <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Standard Terms</label>
                   <textarea
                      value={quotationDefaults.terms}
-                     onChange={(e) => setQuotationDefaults({...quotationDefaults, terms: e.target.value})}
+                     onChange={handleTermsChange}
                      rows={5}
                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-mono text-sm placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
                    />

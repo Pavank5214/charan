@@ -1,24 +1,34 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Building2, MapPin, Phone, Mail, Globe, Hash, Briefcase } from 'lucide-react';
 
-const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
-  
-  // Custom Input
-  const Input = ({ label, value, onChange, placeholder, icon: Icon, type = "text" }) => (
-    <div className="group">
-      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
-        <input
-          type={type}
-          value={value || ''}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
-        />
-      </div>
+// Custom Input Component
+const Input = React.memo(({ label, value, onChange, placeholder, icon: Icon, type = "text" }) => (
+  <div className="group">
+    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
+    <div className="relative">
+      {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
+      <input
+        type={type}
+        value={value || ''}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
+      />
     </div>
-  );
+  </div>
+));
+
+const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
+
+  const handleNameChange = useCallback((e) => setBusiness(prev => ({ ...prev, name: e.target.value })), [setBusiness]);
+  const handleSubTitleChange = useCallback((e) => setBusiness(prev => ({ ...prev, subTitle: e.target.value })), [setBusiness]);
+  const handleGstinChange = useCallback((e) => setBusiness(prev => ({ ...prev, gstin: e.target.value.toUpperCase() })), [setBusiness]);
+  const handleAddressChange = useCallback((e) => setBusiness(prev => ({ ...prev, address: e.target.value })), [setBusiness]);
+  const handleCityChange = useCallback((e) => setBusiness(prev => ({ ...prev, city: e.target.value })), [setBusiness]);
+  const handleStateChange = useCallback((e) => setBusiness(prev => ({ ...prev, state: e.target.value })), [setBusiness]);
+  const handlePincodeChange = useCallback((e) => setBusiness(prev => ({ ...prev, pincode: e.target.value })), [setBusiness]);
+  const handlePhoneChange = useCallback((e) => setBusiness(prev => ({ ...prev, phone: e.target.value })), [setBusiness]);
+  const handleEmailChange = useCallback((e) => setBusiness(prev => ({ ...prev, email: e.target.value })), [setBusiness]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -82,9 +92,9 @@ const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
           
           {isEditing ? (
             <div className="space-y-5">
-              <Input label="Business Name" value={business.name} onChange={(e) => setBusiness({...business, name: e.target.value})} placeholder="e.g. Acme Corp" />
-              <Input label="Subtitle / Tagline" value={business.subTitle} onChange={(e) => setBusiness({...business, subTitle: e.target.value})} placeholder="e.g. Solutions for Tomorrow" />
-              <Input label="GSTIN / Tax ID" value={business.gstin} onChange={(e) => setBusiness({...business, gstin: e.target.value.toUpperCase()})} placeholder="29ABCDE1234F1Z5" icon={Hash} />
+              <Input label="Business Name" value={business.name} onChange={handleNameChange} placeholder="e.g. Acme Corp" />
+              <Input label="Subtitle / Tagline" value={business.subTitle} onChange={handleSubTitleChange} placeholder="e.g. Solutions for Tomorrow" />
+              <Input label="GSTIN / Tax ID" value={business.gstin} onChange={handleGstinChange} placeholder="29ABCDE1234F1Z5" icon={Hash} />
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
@@ -124,13 +134,13 @@ const BusinessSettingsTab = ({ business, setBusiness, isEditing }) => {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="City" value={business.city} onChange={(e) => setBusiness({...business, city: e.target.value})} placeholder="City" />
-                <Input label="State" value={business.state} onChange={(e) => setBusiness({...business, state: e.target.value})} placeholder="State" />
+                <Input label="City" value={business.city} onChange={handleCityChange} placeholder="City" />
+                <Input label="State" value={business.state} onChange={handleStateChange} placeholder="State" />
               </div>
-              <Input label="Pincode" value={business.pincode} onChange={(e) => setBusiness({...business, pincode: e.target.value})} placeholder="000000" />
+              <Input label="Pincode" value={business.pincode} onChange={handlePincodeChange} placeholder="000000" />
               <div className="pt-4 border-t border-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Input label="Phone" icon={Phone} value={business.phone} onChange={(e) => setBusiness({...business, phone: e.target.value})} placeholder="Phone" />
-                 <Input label="Email" icon={Mail} value={business.email} onChange={(e) => setBusiness({...business, email: e.target.value})} placeholder="Email" />
+                 <Input label="Phone" icon={Phone} value={business.phone} onChange={handlePhoneChange} placeholder="Phone" />
+                 <Input label="Email" icon={Mail} value={business.email} onChange={handleEmailChange} placeholder="Email" />
               </div>
             </div>
           ) : (

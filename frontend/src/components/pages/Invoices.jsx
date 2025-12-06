@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  FileText, Search, IndianRupee, Eye,
+  FileText, Search, Eye,
   Download, X, Plus, Edit, Trash2,
   Filter, ChevronDown, CheckCircle, Clock, AlertCircle
 } from 'lucide-react';
@@ -17,7 +17,7 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  
+
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -101,7 +101,7 @@ const Invoices = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex gap-2 justify-end mt-1">
           <button
             onClick={() => toast.dismiss(t.id)}
@@ -128,9 +128,9 @@ const Invoices = () => {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/${id}/status`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status: newStatus })
       });
@@ -169,15 +169,15 @@ const Invoices = () => {
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
       'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
     const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    
+
     const convert = (n) => {
       if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
-      if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + convert(n%100) : '');
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + convert(n % 100) : '');
       for (let i = 0; i < 4; i++) { // Simplified scale loop
-        const unit = Math.pow(1000, i+1);
-        if (n < unit) return convert(Math.floor(n / Math.pow(1000,i))) + ' ' + ['', 'Thousand', 'Lakh', 'Crore'][i] +
-          (n % Math.pow(1000,i) ? ' ' + convert(n % Math.pow(1000,i)) : '');
+        const unit = Math.pow(1000, i + 1);
+        if (n < unit) return convert(Math.floor(n / Math.pow(1000, i))) + ' ' + ['', 'Thousand', 'Lakh', 'Crore'][i] +
+          (n % Math.pow(1000, i) ? ' ' + convert(n % Math.pow(1000, i)) : '');
       }
       return '';
     };
@@ -187,7 +187,7 @@ const Invoices = () => {
   // --- PDF & Render Logic ---
   const handleCloseModal = () => { setIsModalOpen(false); setEditingInvoice(null); setAiData(null); };
   const handleEdit = (inv) => { setEditingInvoice(inv); setAiData(null); setIsModalOpen(true); };
-  
+
   const generatePDFBlob = async (invoiceFromList) => {
     setPdfLoading(true);
     try {
@@ -221,11 +221,11 @@ const Invoices = () => {
     } catch (err) { console.error(err); toast.error('PDF error'); return null; } finally { setPdfLoading(false); }
   };
 
-  const handleView = async (inv) => { const url = await generatePDFBlob(inv); if(url) { setPreviewInvoice(inv); setPdfBlobUrl(url); } };
-  const handleDownload = async (inv) => { const url = await generatePDFBlob(inv); if(url) { const a = document.createElement('a'); a.href = url; a.download = `${inv.invoiceNumber}.pdf`; a.click(); URL.revokeObjectURL(url); } };
-  const closePreview = () => { if(pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl); setPdfBlobUrl(null); setPreviewInvoice(null); };
+  const handleView = async (inv) => { const url = await generatePDFBlob(inv); if (url) { setPreviewInvoice(inv); setPdfBlobUrl(url); } };
+  const handleDownload = async (inv) => { const url = await generatePDFBlob(inv); if (url) { const a = document.createElement('a'); a.href = url; a.download = `${inv.invoiceNumber}.pdf`; a.click(); URL.revokeObjectURL(url); } };
+  const closePreview = () => { if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl); setPdfBlobUrl(null); setPreviewInvoice(null); };
 
-  const handleDelete = (id) => { /* Delete logic same as before... */
+  const handleDelete = (id) => {
     toast((t) => (
       <div className="flex flex-col gap-3 min-w-[240px]">
         <div className="flex items-start gap-3"><div className="p-2 bg-red-50 rounded-full shrink-0"><Trash2 className="w-4 h-4 text-red-600" /></div><div><h3 className="font-medium text-gray-900 text-sm">Delete Invoice?</h3></div></div>
@@ -407,22 +407,70 @@ const Invoices = () => {
         onClose={handleCloseModal}
         onInvoiceCreated={handleInvoiceSaved}
         invoiceToEdit={editingInvoice}
-        aiPrefillData={aiData} 
+        aiPrefillData={aiData}
       />
 
       {previewInvoice && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-2xl font-bold truncate pr-4">Preview - {previewInvoice.invoiceNumber}</h2>
-              <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full h-full md:h-[90vh] md:w-[90vw] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                Preview: {previewInvoice.invoiceNumber}
+              </h3>
+              <button onClick={closePreview} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
             </div>
-            <div className="flex-1 overflow-hidden relative bg-gray-50">
-              {pdfLoading ? <div className="flex items-center justify-center h-full text-gray-600">Generating PDF...</div> : <iframe src={pdfBlobUrl} className="w-full h-full border-0" title="PDF Preview" />}
+
+            {/* PDF Content Area */}
+            <div className="flex-1 overflow-hidden relative bg-gray-100">
+              {pdfLoading ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-600">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                  <p className="font-medium">Generating PDF...</p>
+                </div>
+              ) : (
+                <div className="w-full h-full">
+                  {/* Mobile View: Download Prompt */}
+                  <div className="md:hidden flex flex-col items-center justify-center h-full p-8 text-center bg-white">
+                    <div className="bg-blue-50 rounded-full p-4 mb-6">
+                      <FileText className="w-12 h-12 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">View PDF</h3>
+                    <p className="text-gray-600 mb-6 max-w-sm">
+                      Mobile browsers often block embedded PDFs. Please download the file to view it clearly.
+                    </p>
+                    <button
+                      onClick={() => handleDownload(previewInvoice)}
+                      className="w-full max-w-xs px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                    >
+                      <Download className="w-5 h-5" />
+                      Download PDF
+                    </button>
+                  </div>
+
+                  {/* Desktop View: Iframe */}
+                  <iframe src={pdfBlobUrl} className="hidden md:block w-full h-full border-0" title="PDF Preview" />
+                </div>
+              )}
             </div>
-            <div className="p-6 border-t flex justify-end gap-4 bg-white rounded-b-2xl">
-              <button onClick={() => handleDownload(previewInvoice)} className="px-6 py-3 bg-green-600 text-white rounded-xl flex items-center gap-2"><Download className="w-5 h-5" /> Download</button>
-              <button onClick={closePreview} className="px-6 py-3 border border-gray-200 rounded-xl">Close</button>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t flex flex-col md:flex-row justify-end gap-3 bg-white">
+              <button
+                onClick={closePreview}
+                className="w-full md:w-auto px-6 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => handleDownload(previewInvoice)}
+                className="w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <Download className="w-4 h-4" /> Download
+              </button>
             </div>
           </div>
         </div>

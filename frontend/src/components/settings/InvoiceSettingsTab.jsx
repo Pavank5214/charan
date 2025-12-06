@@ -1,28 +1,37 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Upload, Wallet, Receipt, CreditCard, Landmark, FileText, ImagePlus, ShieldCheck } from 'lucide-react';
 
+// Custom Input Component
+const Input = React.memo(({ label, value, onChange, placeholder, icon: Icon, className = "" }) => (
+  <div className={`group ${className}`}>
+    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
+    <div className="relative">
+      {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
+      <input
+        value={value || ''}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
+      />
+    </div>
+  </div>
+));
+
 const InvoiceSettingsTab = ({
-  invoiceDefaults = {}, 
+  invoiceDefaults = {},
   setInvoiceDefaults,
   logoPreview,
   isEditing,
   handleLogoUpload
 }) => {
 
-  const Input = ({ label, value, onChange, placeholder, icon: Icon, className = "" }) => (
-    <div className={`group ${className}`}>
-      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1 transition-colors group-focus-within:text-indigo-600">{label}</label>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />}
-        <input
-          value={value || ''}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-11' : 'px-4'} py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm`}
-        />
-      </div>
-    </div>
-  );
+  const handleBankNameChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, bankName: e.target.value })), [setInvoiceDefaults]);
+  const handleAccountNumberChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, accountNumber: e.target.value })), [setInvoiceDefaults]);
+  const handleIfscChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, ifsc: e.target.value.toUpperCase() })), [setInvoiceDefaults]);
+  const handleUpiIdChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, upiId: e.target.value })), [setInvoiceDefaults]);
+  const handleDefaultSubjectChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, defaultSubject: e.target.value })), [setInvoiceDefaults]);
+  const handlePaymentTermsChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, paymentTerms: e.target.value })), [setInvoiceDefaults]);
+  const handleTermsChange = useCallback((e) => setInvoiceDefaults(prev => ({ ...prev, terms: e.target.value })), [setInvoiceDefaults]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -94,10 +103,10 @@ const InvoiceSettingsTab = ({
           
           {isEditing ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input label="Bank Name" icon={Landmark} value={invoiceDefaults.bankName} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, bankName: e.target.value})} placeholder="HDFC Bank" />
-              <Input label="Account Number" icon={CreditCard} value={invoiceDefaults.accountNumber} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, accountNumber: e.target.value})} placeholder="0000 0000 0000" />
-              <Input label="IFSC Code" icon={FileText} value={invoiceDefaults.ifsc} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, ifsc: e.target.value.toUpperCase()})} placeholder="HDFC000123" />
-              <Input label="UPI ID" icon={Wallet} value={invoiceDefaults.upiId} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, upiId: e.target.value})} placeholder="user@upi" />
+              <Input label="Bank Name" icon={Landmark} value={invoiceDefaults.bankName} onChange={handleBankNameChange} placeholder="HDFC Bank" />
+              <Input label="Account Number" icon={CreditCard} value={invoiceDefaults.accountNumber} onChange={handleAccountNumberChange} placeholder="0000 0000 0000" />
+              <Input label="IFSC Code" icon={FileText} value={invoiceDefaults.ifsc} onChange={handleIfscChange} placeholder="HDFC000123" />
+              <Input label="UPI ID" icon={Wallet} value={invoiceDefaults.upiId} onChange={handleUpiIdChange} placeholder="user@upi" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -126,14 +135,14 @@ const InvoiceSettingsTab = ({
           {isEditing ? (
              <div className="space-y-5">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                 <Input label="Default Subject" value={invoiceDefaults.defaultSubject} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, defaultSubject: e.target.value})} placeholder="Invoice for Services" />
-                 <Input label="Payment Terms" value={invoiceDefaults.paymentTerms} onChange={(e) => setInvoiceDefaults({...invoiceDefaults, paymentTerms: e.target.value})} placeholder="Due in 15 days" />
+                 <Input label="Default Subject" value={invoiceDefaults.defaultSubject} onChange={handleDefaultSubjectChange} placeholder="Invoice for Services" />
+                 <Input label="Payment Terms" value={invoiceDefaults.paymentTerms} onChange={handlePaymentTermsChange} placeholder="Due in 15 days" />
                </div>
                <div>
                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Terms & Conditions</label>
                  <textarea
                    value={invoiceDefaults.terms}
-                   onChange={(e) => setInvoiceDefaults({...invoiceDefaults, terms: e.target.value})}
+                   onChange={handleTermsChange}
                    rows={5}
                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-mono text-sm placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
                    placeholder="1. Goods once sold..."
