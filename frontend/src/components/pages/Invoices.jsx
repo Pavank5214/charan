@@ -360,7 +360,7 @@ const Invoices = () => {
               </div>
 
               {/* MOBILE VIEW */}
-              <div className="md:hidden space-y-4 p-4">
+              <div className="md:hidden space-y-4  bg-slate-200 ">
                 {filteredInvoices.map((inv) => (
                   <div key={inv._id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <div className="flex justify-between items-start mb-3">
