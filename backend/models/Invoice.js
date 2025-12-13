@@ -44,11 +44,18 @@ const invoiceSchema = new Schema({
     default: 'draft'
   },
 
+
   // Company reference for multi-company support
   companyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
     required: true
+  },
+
+  // Terms and conditions for the invoice
+  terms: { 
+    type: String, 
+    default: '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.' 
   },
 
 }, { timestamps: true });

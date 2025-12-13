@@ -17,10 +17,12 @@ const CompanySchema = new mongoose.Schema({
     ifsc: String,
     upiId: String
   },
+
   invoiceSettings: {
     paymentTerms: { type: String, default: 'Due on receipt' },
     notes: { type: String, default: 'Thank you for your business!' },
-    footerText: String
+    footerText: String,
+    terms: { type: String, default: '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.' }
   },
   quotationSettings: {
     prefix: { type: String, default: 'QUO' },

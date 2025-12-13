@@ -46,10 +46,12 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [placeOfSupply, setPlaceOfSupply] = useState('');
   const [gstRate, setGstRate] = useState(18);
+
   const [basicPrice, setBasicPrice] = useState(0);
   const [items, setItems] = useState([
     { description: '', hsn: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }
   ]);
+  const [terms, setTerms] = useState('');
 
   const [pdfBlob, setPdfBlob] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -113,11 +115,13 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
             setSelectedClientId(invoiceToEdit.clientId._id);
           }
 
+
           setInvoiceNumber(invoiceToEdit.invoiceNumber);
           setInvoiceDate(invoiceToEdit.invoiceDate ? new Date(invoiceToEdit.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
           setPlaceOfSupply(invoiceToEdit.placeOfSupply || loadedClient.state || 'KARNATAKA');
           setGstRate(invoiceToEdit.gstRate || 18);
           setBasicPrice(invoiceToEdit.basicPrice || 0);
+          setTerms(invoiceToEdit.terms || company?.invoiceSettings?.terms || '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.');
           setItems(invoiceToEdit.items?.map(item => ({ ...item, unit: item.unit || 'NOS' })) || [{ description: '', hsn: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
 
         } else if (aiPrefillData) {
@@ -182,6 +186,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
           setInvoiceDate(today.toISOString().split('T')[0]);
           setGstRate(18);
 
+
         } else {
           // MODE: STANDARD NEW INVOICE
           setSelectedClientId('');
@@ -190,6 +195,10 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
           setPlaceOfSupply(company?.state || 'KARNATAKA');
           setGstRate(18);
           setItems([{ description: '', hsn: '', qty: 1, unit: 'NOS', rate: 0, discount: 0 }]);
+
+          // Load terms from invoice settings
+          const defaultTerms = company?.invoiceSettings?.terms || '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.';
+          setTerms(defaultTerms);
 
           const today = new Date();
           const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
@@ -358,9 +367,21 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
           </div>
         </div>
 
+
         <div class="amount-words">
           Amount in words: ${data.totals.inWords}
         </div>
+
+        ${data.terms && data.terms.length > 0 ? `
+        <div style="margin-top: 40px; border-top: 2px solid #e2e8f0; padding-top: 20px;">
+          <h3 style="font-size: 14px; font-weight: bold; color: #334155; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Terms & Conditions</h3>
+          <div style="font-size: 12px; color: #64748b; line-height: 1.6;">
+            ${data.terms.map((term, index) => `
+              <div style="margin-bottom: 4px;">${term}</div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
       </body>
       </html>
     `;
@@ -381,6 +402,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
 
     setPdfLoading(true);
 
+
     const previewData = {
         company: companyData || {},
         client: client,
@@ -399,7 +421,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
             gst: gst.toFixed(2),
             total: total.toFixed(2),
             inWords: numberToWords(total)
-        }
+        },
+        terms: terms ? terms.split('\n').filter(t => t.trim()) : (companyData?.invoiceSettings?.terms ? companyData.invoiceSettings.terms.split('\n').filter(t => t.trim()) : ['1. Payment due within 30 days.', '2. All disputes subject to jurisdiction.', '3. Goods once sold will not be taken back.'])
     };
 
     setTimeout(() => {
@@ -446,6 +469,8 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
         }
       }
 
+
+
       const payload = {
         clientId,
         invoiceNumber: invoiceNumber.trim(),
@@ -453,6 +478,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
         placeOfSupply,
         gstRate,
         basicPrice,
+        terms: terms.trim(),
         items: items.filter(i => i.description?.trim()).map(item => {
           if (item.unit === "NONE") {
             return { ...item, unit: "NOS" };
@@ -865,6 +891,21 @@ const CreateInvoiceModal = ({ isOpen, onClose, onInvoiceCreated, invoiceToEdit, 
                   </div>
                   <p className="text-xs text-right text-gray-400 italic mt-1">{numberToWords(total)}</p>
                 </div>
+              </div>
+
+
+              {/* Terms and Conditions */}
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> Terms & Conditions
+                </h3>
+                <textarea
+                  value={terms}
+                  onChange={(e) => setTerms(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm resize-none"
+                  placeholder="Enter terms and conditions for this invoice..."
+                />
               </div>
 
               {/* Persistent Error Message */}

@@ -20,6 +20,13 @@ router.get('/me', auth, async (req, res) => {
       if (company.quotationSettings.defaultSubject === undefined || company.quotationSettings.defaultSubject === '') company.quotationSettings.defaultSubject = 'Quotation for Services';
       if (company.quotationSettings.defaultIntro === undefined || company.quotationSettings.defaultIntro === '') company.quotationSettings.defaultIntro = 'Thank you for considering our services. We are pleased to provide the following quotation.';
       if (company.quotationSettings.terms === undefined || company.quotationSettings.terms === '') company.quotationSettings.terms = '1. Payment terms: 50% advance, 50% on completion.\n2. Validity: 30 days from date of quotation.\n3. All prices are exclusive of GST.';
+      
+      // Ensure invoiceSettings has defaults for each field if missing or empty
+      if (!company.invoiceSettings) company.invoiceSettings = {};
+      if (company.invoiceSettings.paymentTerms === undefined || company.invoiceSettings.paymentTerms === '') company.invoiceSettings.paymentTerms = 'Due in 15 days';
+      if (company.invoiceSettings.terms === undefined || company.invoiceSettings.terms === '') company.invoiceSettings.terms = '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.';
+      if (company.invoiceSettings.defaultSubject === undefined || company.invoiceSettings.defaultSubject === '') company.invoiceSettings.defaultSubject = 'Invoice for Services';
+      
       await company.save(); // Save to persist defaults
     }
 
@@ -76,7 +83,7 @@ router.put('/business', auth, async (req, res) => {
 router.put('/invoice-defaults', auth, async (req, res) => {
   const {
     bankName, accountNumber, ifsc, upiId,
-    paymentTerms, notes, footerText, logo
+    paymentTerms, notes, footerText, terms, logo
   } = req.body;
 
   const updateFields = {
@@ -87,6 +94,7 @@ router.put('/invoice-defaults', auth, async (req, res) => {
     "invoiceSettings.paymentTerms": paymentTerms,
     "invoiceSettings.notes": notes,
     "invoiceSettings.footerText": footerText,
+    "invoiceSettings.terms": terms,
   };
 
   // Only update logo if a new one is provided
@@ -105,6 +113,7 @@ router.put('/invoice-defaults', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 // @route   PUT /api/settings/quotation-defaults
 // @desc    Update quotation defaults (Atomic Operation)
 router.put('/quotation-defaults', auth, async (req, res) => {

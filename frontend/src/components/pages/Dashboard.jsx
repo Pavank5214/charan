@@ -73,12 +73,12 @@ const Dashboard = () => {
     setAiLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/ai/insight${forceRefresh ? '?force=true' : ''}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // const response = await fetch(`${API_BASE}/ai/insight${forceRefresh ? '?force=true' : ''}`, {
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //     'Content-Type': 'application/json'
+      //   }
+      // });
 
       if (response.ok) {
         const data = await response.json();

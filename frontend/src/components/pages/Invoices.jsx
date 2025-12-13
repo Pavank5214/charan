@@ -220,7 +220,21 @@ const Invoices = () => {
           total: Number(invoiceFromList.total || 0).toFixed(2),
           inWords: numberToWords(invoiceFromList.total || 0)
         },
-        bank: company.bankDetails || {}, gstRate: invoiceFromList.gstRate || 18, terms: company.terms || ['E & O.E.']
+
+
+        bank: company.bankDetails || {}, gstRate: invoiceFromList.gstRate || 18, 
+        terms: (() => {
+          // First check if invoice has its own terms
+          if (invoiceFromList.terms && invoiceFromList.terms.trim()) {
+            return invoiceFromList.terms.split('\n').filter(t => t.trim());
+          }
+          // Fallback to company invoice settings
+          if (company.invoiceSettings?.terms && company.invoiceSettings.terms.trim()) {
+            return company.invoiceSettings.terms.split('\n').filter(t => t.trim());
+          }
+          // Final fallback to default terms
+          return ['1. Payment due within 30 days.', '2. All disputes subject to jurisdiction.', '3. Goods once sold will not be taken back.'];
+        })()
       };
 
       const blob = await pdf(<InvoicePDF invoice={pdfData} />).toBlob();
