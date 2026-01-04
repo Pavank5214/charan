@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 8080;
 const allowedOrigins = [
   "http://localhost:5173",
   "https://charan-6p3w.vercel.app", 
+  "https://billflow.pavankumar.site",
   "https://charan-liard.vercel.app"// frontend
 ];
 
