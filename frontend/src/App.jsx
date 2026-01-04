@@ -15,7 +15,7 @@ import Clients from './components/pages/Clients';
 import ItemsPage from "./components/pages/ItemsPage";
 import Expenses from "./components/pages/Expenses"
 import Login from './components/pages/Login';
-import Register from './components/pages/Register';
+
 import PurchaseOrders from "./components/pages/PurchaseOrders";
 import UserManagement from "./components/pages/UserManagement";
 
@@ -56,26 +56,26 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Auth Routes */}
-          <Route path="/login"element={<AuthRoute><Login /></AuthRoute> } />
+          <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
 
           {/* Protected Routes */}
-            <Route path="/" element={<UserLayout /> } >
+          <Route path="/" element={<UserLayout />} >
             <Route index element={<Home />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="invoices" element={<Invoices />} />
             <Route path="quotations" element={<Quotation />} />
-            <Route path="bom" element={<BOMList />}/>
+            <Route path="bom" element={<BOMList />} />
             <Route path="clients" element={<Clients />} />
             <Route path="items" element={<ItemsPage />} />
             <Route path="payments" element={<Payments />} />
-            <Route path="purchase-orders" element={<PurchaseOrders/>} />
-            <Route path="expenses" element={<Expenses/>} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="expenses" element={<Expenses />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="users" element={<UserManagement />}/>
+            <Route path="users" element={<UserManagement />} />
           </Route>
 
-          
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

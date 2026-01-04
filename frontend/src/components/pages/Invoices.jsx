@@ -65,6 +65,7 @@ const Invoices = () => {
   }, []);
 
   const handleInvoiceSaved = (updatedInvoice) => {
+    console.log("DEBUG: handleInvoiceSaved called with:", updatedInvoice);
     if (updatedInvoice) {
       setInvoices(prev => {
         const existingIndex = prev.findIndex(inv => inv._id === updatedInvoice._id);
@@ -86,6 +87,7 @@ const Invoices = () => {
 
   // --- Status Change Logic ---
   const handleStatusChange = (id, newStatus, currentStatus) => {
+    console.log("DEBUG: handleStatusChange", id, newStatus, currentStatus);
     if (newStatus === currentStatus) return;
 
     toast((t) => (
@@ -137,6 +139,7 @@ const Invoices = () => {
 
       if (!res.ok) throw new Error("Failed to update");
 
+      console.log("DEBUG: Status update success for:", id, newStatus);
       setInvoices(prev => prev.map(inv => inv._id === id ? { ...inv, status: newStatus } : inv));
       toast.success(`Status updated to ${newStatus}`, { id: loadingToast });
     } catch (err) {
@@ -222,7 +225,7 @@ const Invoices = () => {
         },
 
 
-        bank: company.bankDetails || {}, gstRate: invoiceFromList.gstRate || 18, 
+        bank: company.bankDetails || {}, gstRate: invoiceFromList.gstRate || 18,
         terms: (() => {
           // First check if invoice has its own terms
           if (invoiceFromList.terms && invoiceFromList.terms.trim()) {
@@ -310,7 +313,7 @@ const Invoices = () => {
         {/* List */}
         {/* List */}
         <div className="mt-6"> {/* Removed the outer bg-white wrapper here */}
-          
+
           {loading ? (
             <div className="p-12 text-center text-gray-500">Loading...</div>
           ) : filteredInvoices.length === 0 ? (

@@ -126,7 +126,7 @@ const InvoiceSettingsTab = ({
         </section>
 
         {/* Defaults Form */}
-        <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
+        {/* <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
             <Receipt className="w-5 h-5 text-indigo-500" />
             Content Defaults
@@ -174,7 +174,7 @@ const InvoiceSettingsTab = ({
                 </div>
              </div>
           )}
-        </section>
+        </section> */}
 
       </div>
     </div>

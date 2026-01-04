@@ -10,7 +10,8 @@ const Company = require('../models/Company');
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    let company = await Company.findOne({ user: req.user.id });
+    // SINGLE FACTORY CHANGE: Fetch the FIRST available company (Shared Global Settings)
+    let company = await Company.findOne();
 
     if (company) {
       // Ensure quotationSettings has defaults for each field if missing or empty
@@ -20,13 +21,13 @@ router.get('/me', auth, async (req, res) => {
       if (company.quotationSettings.defaultSubject === undefined || company.quotationSettings.defaultSubject === '') company.quotationSettings.defaultSubject = 'Quotation for Services';
       if (company.quotationSettings.defaultIntro === undefined || company.quotationSettings.defaultIntro === '') company.quotationSettings.defaultIntro = 'Thank you for considering our services. We are pleased to provide the following quotation.';
       if (company.quotationSettings.terms === undefined || company.quotationSettings.terms === '') company.quotationSettings.terms = '1. Payment terms: 50% advance, 50% on completion.\n2. Validity: 30 days from date of quotation.\n3. All prices are exclusive of GST.';
-      
+
       // Ensure invoiceSettings has defaults for each field if missing or empty
       if (!company.invoiceSettings) company.invoiceSettings = {};
       if (company.invoiceSettings.paymentTerms === undefined || company.invoiceSettings.paymentTerms === '') company.invoiceSettings.paymentTerms = 'Due in 15 days';
       if (company.invoiceSettings.terms === undefined || company.invoiceSettings.terms === '') company.invoiceSettings.terms = '1. Payment due within 30 days.\n2. All disputes subject to jurisdiction.\n3. Goods once sold will not be taken back.';
       if (company.invoiceSettings.defaultSubject === undefined || company.invoiceSettings.defaultSubject === '') company.invoiceSettings.defaultSubject = 'Invoice for Services';
-      
+
       await company.save(); // Save to persist defaults
     }
 
@@ -49,35 +50,38 @@ router.get('/me', auth, async (req, res) => {
 router.put('/business', auth, async (req, res) => {
   const { name, gstin, address, city, state, pincode, phone, email } = req.body;
 
-  try {
-    let company = await Company.findOne({ user: req.user.id });
+  
+    try {
+      // SINGLE FACTORY CHANGE: Find the shared company
+      let company = await Company.findOne();
 
-    if (!company) {
-      company = new Company({ user: req.user.id });
+      if (!company) {
+        // If no company exists yet, create one and assign current user as initial creator
+        company = new Company({ user: req.user.id });
+      }
+
+      company.name = name;
+      company.gstin = gstin?.toUpperCase();
+      company.address = address;
+      company.city = city;
+      company.state = state;
+      company.pincode = pincode;
+      company.phone = phone;
+      company.email = email;
+
+      await company.save();
+
+      // Also update user phone/email if provided
+      await User.findByIdAndUpdate(req.user.id, {
+        $set: { phone: phone || req.user.phone, email: email || req.user.email }
+      });
+
+      res.json({ message: 'Business details updated', company });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: 'Server error' });
     }
-
-    company.name = name;
-    company.gstin = gstin?.toUpperCase();
-    company.address = address;
-    company.city = city;
-    company.state = state;
-    company.pincode = pincode;
-    company.phone = phone;
-    company.email = email;
-
-    await company.save();
-
-    // Also update user phone/email if provided
-    await User.findByIdAndUpdate(req.user.id, {
-      $set: { phone: phone || req.user.phone, email: email || req.user.email }
-    });
-
-    res.json({ message: 'Business details updated', company });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  });
 
 // @route   PUT /api/settings/invoice-defaults
 router.put('/invoice-defaults', auth, async (req, res) => {
@@ -102,7 +106,7 @@ router.put('/invoice-defaults', auth, async (req, res) => {
 
   try {
     const company = await Company.findOneAndUpdate(
-      { user: req.user.id },
+      {}, // SINGLE FACTORY CHANGE: Update ANY company found (effectively the single one)
       { $set: updateFields },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
@@ -131,7 +135,7 @@ router.put('/quotation-defaults', auth, async (req, res) => {
 
   try {
     const company = await Company.findOneAndUpdate(
-      { user: req.user.id },
+      {}, // SINGLE FACTORY CHANGE: Update ANY company found (effectively the single one)
       { $set: updateFields },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );

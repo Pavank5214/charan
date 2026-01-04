@@ -23,7 +23,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     // Simulate network delay for effect
     // await new Promise(r => setTimeout(r, 800));
 
@@ -69,7 +69,7 @@ const Login = () => {
 
       {/* Background Container - Pure CSS Mesh Gradient */}
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-100 via-purple-100 to-blue-100 animate-aurora relative overflow-hidden">
-        
+
         {/* Abstract decorative circles (CSS only) */}
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob"></div>
         <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob animation-delay-2000"></div>
@@ -77,7 +77,7 @@ const Login = () => {
 
         {/* Main Card */}
         <div className={`w-full max-w-[420px] glass-panel border border-white/50 rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10 transition-all duration-300 ${shake ? 'animate-shake border-red-200' : ''}`}>
-          
+
           {/* Logo / Header */}
           <div className="flex flex-col items-center mb-8">
             <div className="h-14 w-14 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 mb-4 transform transition-transform hover:scale-110 hover:rotate-3 duration-300">
@@ -124,7 +124,7 @@ const Login = () => {
 
             {/* Password Input */}
             <div className="group">
-               <div className="flex items-center justify-between mb-1.5 ml-1">
+              <div className="flex items-center justify-between mb-1.5 ml-1">
                 <label htmlFor="password" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Password
                 </label>
@@ -157,10 +157,10 @@ const Login = () => {
               </div>
             </div>
 
-             <div className="flex items-center justify-end">
-                <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
-                  Forgot password?
-                </Link>
+            <div className="flex items-center justify-end">
+              <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
+                Forgot password?
+              </Link>
             </div>
 
             {/* Submit Button */}
@@ -179,17 +179,16 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Footer */}
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500 font-medium">
-              Single-user application
+              Authorized Personnel Only
             </p>
           </div>
         </div>
 
         {/* Bottom Text */}
         <div className="absolute bottom-6 text-center text-slate-400 text-xs font-medium">
-          
+
         </div>
       </div>
     </>

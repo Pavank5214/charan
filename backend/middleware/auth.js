@@ -1,46 +1,52 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Company = require('../models/Company');
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const Company = require("../models/Company");
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
+    // ❌ Never allow silent fallback
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not defined");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const user = await User.findById(decoded.userId).select('-password');
+    const authHeader = req.headers.authorization;
+
+    // ✅ Hard validation of header format
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        message: "Authorization header missing or malformed",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token || token === "null" || token === "undefined") {
+      return res.status(401).json({ message: "Invalid token value" });
+    }
+
+    // ✅ Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded.userId) {
+      return res.status(401).json({ message: "Token payload invalid" });
+    }
+
+    const user = await User.findById(decoded.userId).select("-password");
 
     if (!user) {
-      return res.status(401).json({ message: 'Token is valid, but User does not exist' });
+      return res.status(401).json({ message: "User not found" });
     }
 
-    // --- FIX START ---
-    
-    // Instead of looking for a company belonging to THIS user,
-    // we fetch the FIRST (and only) company in the database.
-    const company = await Company.findOne(); 
+    // ⚠️ TEMP single-tenant logic (acceptable for now)
+    const company = await Company.findOne();
 
     req.user = user;
-    
-    if (company) {
-      // Attach the global company ID to the request
-      req.user.currentCompanyId = company._id;
-    } else {
-      // Edge case: If NO company exists at all (brand new install), 
-      // only then might we handle creation, or just leave it null.
-      // For now, we assume you (Admin) already have a company.
-      req.user.currentCompanyId = null; 
-    }
-    
-    // --- FIX END ---
+    req.user.currentCompanyId = company ? company._id : null;
 
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error.message);
-    res.status(401).json({ message: 'Token is not valid' });
+    return res.status(401).json({ message: "Token verification failed" });
   }
 };
 

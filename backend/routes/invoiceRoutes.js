@@ -13,9 +13,17 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Please select a valid client before saving the invoice' });
     }
 
+    // SINGLE FACTORY CHANGE: Fetch the shared company ID
+    const Company = require('../models/Company');
+    const company = await Company.findOne();
+
+    if (!company) {
+      return res.status(400).json({ message: 'No company settings found. Please configure settings first.' });
+    }
+
     const invoice = new Invoice({
       ...req.body,
-      companyId: req.user.currentCompanyId // Attach to logged-in user's company
+      companyId: company._id // Attach to the single shared company
     });
     const saved = await invoice.save();
     await saved.populate('clientId');
@@ -33,7 +41,8 @@ router.post('/', auth, async (req, res) => {
 // ---------- READ ALL ----------
 router.get('/', auth, async (req, res) => {
   try {
-    const invoices = await Invoice.find({ companyId: req.user.currentCompanyId })
+    // SINGLE FACTORY CHANGE: Fetch ALL invoices (Shared Data)
+    const invoices = await Invoice.find({})
       .populate('clientId')
       .sort({ createdAt: -1 }); // Newest first
     res.json(invoices);
@@ -46,8 +55,8 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const invoice = await Invoice.findOne({
-      _id: req.params.id,
-      companyId: req.user.currentCompanyId
+      _id: req.params.id
+      // companyId check removed for shared access
     }).populate('clientId');
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
     res.json(invoice);
@@ -67,7 +76,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const updated = await Invoice.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.currentCompanyId },
+      { _id: req.params.id }, // SINGLE FACTORY CHANGE: Allow update by any authorized user
       req.body,
       { new: true, runValidators: true }
     );
@@ -100,7 +109,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 
   try {
     const invoice = await Invoice.findOneAndUpdate(
-      { _id: req.params.id, companyId: req.user.currentCompanyId },
+      { _id: req.params.id }, // SINGLE FACTORY CHANGE
       { status },
       { new: true }
     ).populate('clientId');
@@ -117,10 +126,10 @@ router.patch('/:id/status', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const deleted = await Invoice.findOneAndDelete({
-      _id: req.params.id,
-      companyId: req.user.currentCompanyId
+      _id: req.params.id
+      // companyId check removed
     });
-    
+
     if (!deleted) return res.status(404).json({ message: 'Invoice not found or unauthorized' });
     res.json({ message: 'Invoice deleted successfully' });
   } catch (err) {
